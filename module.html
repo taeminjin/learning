@@ -2188,11 +2188,7 @@ function showCompletion() {
 async function submitSession() {
   const btn    = $('btn-submit-final');
   const status = $('submit-status');
-
-  if (!SUBMIT_URL || SUBMIT_URL.includes('https://script.google.com/macros/s/AKfycbyxevT1EWOj_IgdmL2oFiubBWc3b1BC5BnUuCL5-w0PxLjVPE9xsO_m_3RoIgqZ9mvO_A/exec')) {
-    status.textContent = 'Session submission is not configured yet. Add your Apps Script URL to SUBMIT_URL.';
-    return;
-  }
+ 
   btn.disabled = true;
   btn.textContent = 'Submitting…';
   status.textContent = '';
