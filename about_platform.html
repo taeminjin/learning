@@ -2,111 +2,199 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>About This Platform</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@400;500;600;700&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" />
+  <link rel="icon" href="favicon.ico" sizes="any">
   <style>
-    :root{
-      --bg:#f4f6fb;
-      --card:#ffffff;
-      --text:#1f2a44;
-      --muted:#5f6b85;
-      --border:#d9dfeb;
-      --accent:#2e5aac;
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    * { overflow-wrap: break-word; }
+
+    :root {
+      --navy:       #10213d;
+      --navy-mid:   #1a3560;
+      --cream:      #edf4ff;
+      --cream-dark: #dbe9ff;
+      --gold:       #2f6edc;
+      --gold-lt:    #4d87f0;
+      --green:      #166534;
+      --green-lt:   #dcfce7;
+      --red:        #991b1b;
+      --red-lt:     #fef2f2;
+      --muted:      #5f718f;
+      --rule:       #c8d8f0;
+      --white:      #ffffff;
+      --serif:      'Libre Baskerville', Georgia, serif;
+      --sans:       'League Spartan', 'Helvetica Neue', Arial, sans-serif;
+      --radius:     12px;
+      --shadow:     0 6px 18px rgba(16,33,61,0.06);
     }
 
-    *{box-sizing:border-box}
+    html { font-size: 16px; scroll-behavior: smooth; }
 
-    body{
-      margin:0;
-      font-family: Arial, Helvetica, sans-serif;
-      background:var(--bg);
-      color:var(--text);
-      line-height:1.55;
+    body {
+      font-family: var(--sans);
+      font-weight: 400;
+      background: var(--cream);
+      color: var(--navy);
+      line-height: 1.6;
+      min-height: 100dvh;
+      -webkit-font-smoothing: antialiased;
+      -webkit-tap-highlight-color: transparent;
     }
 
-    .page{
-      max-width:760px;
-      margin:0 auto;
-      padding:28px 16px 40px;
+    #progress-bar {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: var(--cream-dark);
+      z-index: 200;
     }
 
-    .stack{
-      display:grid;
-      gap:14px;
+    #progress-fill {
+      height: 100%;
+      background: var(--gold);
+      width: 100%;
     }
 
-    .card{
-      background:var(--card);
-      border:1px solid var(--border);
-      border-radius:18px;
-      padding:20px 18px;
-      box-shadow:0 8px 24px rgba(31,42,68,0.06);
+    #app {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 28px 28px 72px;
     }
 
-    h1{
-      margin:0 0 8px;
-      font-size:1.9rem;
-      line-height:1.15;
-      color:var(--accent);
+    .about-shell {
+      display: grid;
+      gap: 12px;
+      margin-top: 18px;
     }
 
-    h2{
-      margin:0 0 8px;
-      font-size:1.15rem;
-      line-height:1.25;
+    .hero-card {
+      background: #f8fbff;
+      border: 1px solid var(--rule);
+      border-radius: 16px;
+      padding: 28px 26px 22px;
+      box-shadow: var(--shadow);
     }
 
-    p{
-      margin:0;
-      font-size:1rem;
+    .module-label {
+      font-size: 0.68rem;
+      font-weight: 600;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 10px;
     }
 
-    .card p + p{
-      margin-top:10px;
+    .hero-title {
+      font-family: var(--serif);
+      font-size: clamp(1.45rem, 4vw, 2.15rem);
+      font-weight: 700;
+      color: var(--navy);
+      line-height: 1.18;
+      margin-bottom: 12px;
     }
 
-    .note{
-      color:var(--muted);
-      font-size:0.95rem;
+    .hero-sub {
+      font-size: 0.96rem;
+      color: #4d6283;
+      max-width: 620px;
     }
 
-    @media (max-width: 640px){
-      .page{
-        padding:20px 12px 32px;
+    .dashboard-card,
+    .text-card {
+      background: var(--white);
+      border: 1px solid var(--rule);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .dashboard-card {
+      padding: 16px 16px 14px;
+    }
+
+    .dashboard-card h2 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--navy);
+      margin-bottom: 8px;
+    }
+
+    .dashboard-card p {
+      font-size: 0.95rem;
+      color: var(--navy);
+      line-height: 1.58;
+    }
+
+    .dashboard-card p + p {
+      margin-top: 10px;
+    }
+
+    .note-card {
+      background: #f8fbff;
+    }
+
+    .note-card p:last-child {
+      color: var(--muted);
+    }
+
+    .divider {
+      height: 1px;
+      background: var(--rule);
+      margin: 2px 0;
+      opacity: 0.75;
+    }
+
+    @media (max-width: 800px) {
+      #app { padding: 20px 16px 56px; }
+      .hero-card { padding: 22px 18px 18px; }
+    }
+
+    @media (max-width: 600px) {
+      #app { padding: 18px 14px 48px; }
+
+      .hero-card {
+        padding: 18px 16px 16px;
+        border-radius: 14px;
       }
 
-      .card{
-        padding:16px 14px;
-        border-radius:16px;
+      .dashboard-card {
+        padding: 14px 14px 12px;
       }
 
-      h1{
-        font-size:1.55rem;
+      .hero-title {
+        font-size: clamp(1.3rem, 6vw, 1.7rem);
       }
 
-      h2{
-        font-size:1.02rem;
+      .hero-sub,
+      .dashboard-card p {
+        font-size: 0.92rem;
       }
 
-      p{
-        font-size:0.96rem;
+      .dashboard-card h2 {
+        font-size: 0.96rem;
       }
     }
   </style>
 </head>
 <body>
-  <main class="page">
-    <div class="stack">
-      <section class="card">
-        <h1>Why I made this platform</h1>
-        <p>
+  <div id="progress-bar"><div id="progress-fill"></div></div>
+
+  <div id="app">
+    <main class="about-shell">
+      <section class="hero-card">
+        <p class="module-label">Student Learning Platform</p>
+        <h1 class="hero-title">Why I made this platform</h1>
+        <p class="hero-sub">
           I built this site because I believe retrieval practice and quizzing are some of the best ways to learn.
           Many students want to quiz themselves more effectively but do not always have an easy way to do that.
           This platform is meant to make practice simple, fast, and easy to access.
         </p>
       </section>
 
-      <section class="card">
+      <section class="dashboard-card">
         <h2>What this platform is for</h2>
         <p>
           This site gives you quick access to practice questions for your course. Sign in with your Google account,
@@ -114,7 +202,9 @@
         </p>
       </section>
 
-      <section class="card">
+      <div class="divider"></div>
+
+      <section class="dashboard-card">
         <h2>How it works</h2>
         <p>
           Each quiz gives you a random set of questions from the systems you selected. Behind the scenes, the platform
@@ -124,7 +214,9 @@
         </p>
       </section>
 
-      <section class="card">
+      <div class="divider"></div>
+
+      <section class="dashboard-card">
         <h2>Designed for quick practice</h2>
         <p>
           I wanted this to work well on both phones and computers so you can practice whenever you have a few minutes.
@@ -132,15 +224,20 @@
         </p>
       </section>
 
-      <section class="card">
+      <div class="divider"></div>
+
+      <section class="dashboard-card note-card">
         <h2>Please let me know about errors</h2>
         <p>
           Many of these questions were created with AI and then reviewed by me. I do my best to check them carefully,
           but there is still a chance that some questions may contain errors or that you may run into technical bugs.
           If that happens, please use the feedback option to let me know so I can improve the platform.
         </p>
+        <p>
+          Also, the module code section is not in use yet. I plan to add learning modules later, but it is not active right now.
+        </p>
       </section>
-    </div>
-  </main>
+    </main>
+  </div>
 </body>
 </html>
