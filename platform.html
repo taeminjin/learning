@@ -2234,11 +2234,8 @@ function shuffleArray(arr) {
 }
 
 function splitBlob(value) {
-  const raw = String(value || '').trim();
-  if (!raw) return [];
-
-  return raw
-    .split(/\s*\|\|\s*|\s*\|\s*/g)
+  return String(value || '')
+    .split('|')
     .map(s => s.trim())
     .filter(Boolean);
 }
@@ -5204,11 +5201,11 @@ function isCaseInsensitive(settings) {
 function isQuestionCardType(type) {
   const t = String(type || '').trim().toLowerCase();
   return [
-    'question',
-    'question_image',
-    'select_all',
-    'fill_blank',
-    'categorize_drag_drop'
+    'sba',
+    'sba_image',
+    'sata',
+    'fitb',
+    'categorize'
   ].includes(t);
 }
 
@@ -5548,22 +5545,41 @@ function renderPollCard(item, sectionIndex, onComplete) {
 }
 
 function renderCardByType(item, sectionIndex, onComplete) {
-  if (item.type === 'video') return renderVideoBlock(item, sectionIndex, onComplete);
-  if (item.type === 'text') return renderTextBlock(item, sectionIndex, onComplete);
-  if (item.type === 'text_image') return renderTextImageBlock(item, sectionIndex, onComplete);
-  if (item.type === 'question') return renderQuestionCard(item, sectionIndex, onComplete, false);
-  if (item.type === 'question_image') {
-    if (!item.mediaUrl) return renderIncompleteCard(item, sectionIndex, onComplete, 'Question image card is missing media_url.');
+  const type = String(item.type || '').trim().toLowerCase();
+
+  if (type === 'video') return renderVideoBlock(item, sectionIndex, onComplete);
+  if (type === 'text') return renderTextBlock(item, sectionIndex, onComplete);
+  if (type === 'text_image') return renderTextImageBlock(item, sectionIndex, onComplete);
+
+  if (type === 'sba') {
+    return renderQuestionCard(item, sectionIndex, onComplete, false);
+  }
+
+  if (type === 'sba_image') {
+    if (!item.mediaUrl) {
+      return renderIncompleteCard(item, sectionIndex, onComplete, 'Question image card is missing media_url.');
+    }
     return renderQuestionCard(item, sectionIndex, onComplete, true);
   }
-  if (item.type === 'select_all') return renderSelectAllCard(item, sectionIndex, onComplete);
-  if (item.type === 'fill_blank') return renderFillBlankCard(item, sectionIndex, onComplete);
-  if (item.type === 'categorize_drag_drop') return renderCategorizeCard(item, sectionIndex, onComplete);
-  if (item.type === 'reflection') return renderReflectionCard(item, sectionIndex, onComplete);
-  if (item.type === 'poll') return renderPollCard(item, sectionIndex, onComplete);
+
+  if (type === 'sata') {
+    return renderSelectAllCard(item, sectionIndex, onComplete);
+  }
+
+  if (type === 'fitb') {
+    return renderFillBlankCard(item, sectionIndex, onComplete);
+  }
+
+  if (type === 'categorize') {
+    return renderCategorizeCard(item, sectionIndex, onComplete);
+  }
+
+  if (type === 'reflection') return renderReflectionCard(item, sectionIndex, onComplete);
+  if (type === 'poll') return renderPollCard(item, sectionIndex, onComplete);
+
   return renderIncompleteCard(item, sectionIndex, onComplete, `Unsupported card type: ${item.type || 'unknown'}`);
 }
-
+ 
 // Warn before leaving while training is active
 window.addEventListener('beforeunload', e => {
   if (hasActivePracticeSession()) {
