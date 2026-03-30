@@ -6362,7 +6362,17 @@ document.addEventListener('DOMContentLoaded', async () => {
   bindPracticeKeyboardShortcuts();
 
   $('btn-logout').addEventListener('click', logoutToAuth);
-  $('assignment-key-btn').addEventListener('click', startModuleByAssignmentKey);
+  $('assignment-key-btn').addEventListener('click', async () => {
+  const selectedKey = String($('assignment-key-input').value || '').trim();
+  $('dashboard-error').textContent = '';
+
+  if (!selectedKey) {
+    $('dashboard-error').textContent = 'Please enter a module code.';
+    return;
+  }
+
+  await startModuleByKey(selectedKey);
+});
   $('practice-course-select').addEventListener('change', e => {
     if (!practiceTestState.practiceTopicsLoaded) return;
     const selectedCourse = String(e.target.value || '').trim();
