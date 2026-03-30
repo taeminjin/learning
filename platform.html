@@ -2258,22 +2258,23 @@ function parseSettings(value) {
   return out;
 }
 
-function parseCategoryMappings(value) {
-  return String(value || '')
-    .split('###')
+function parseCategoryMappings(blob) {
+  return String(blob || '')
+    .split('||')
     .map(part => part.trim())
     .filter(Boolean)
     .map(part => {
-      const idx = part.indexOf('::');
-      if (idx === -1) return null;
-      const category = part.slice(0, idx).trim();
-      const items = splitBlob(part.slice(idx + 2));
-      if (!category || items.length === 0) return null;
-      return { category, items };
+      const pieces = part.split('|').map(s => s.trim()).filter(Boolean);
+      if (pieces.length < 2) return null;
+
+      const item = pieces[0];
+      const category = pieces[1];
+
+      if (!item || !category) return null;
+      return { item, category };
     })
     .filter(Boolean);
 }
-
 function normalizeBool(value) {
   return ['true', 'yes', '1'].includes(String(value || '').trim().toLowerCase());
 }
@@ -5361,23 +5362,53 @@ function assignSelectedItemToCategory(cardState, selectedItem, categoryName) {
 }
 
 function renderCategorizeCard(item, sectionIndex, onComplete) {
-  if (!item.prompt || item.options.length === 0 || item.categoryMappings.length === 0) {
+  const pairs = (item.categoryMappings || []).flatMap(m => {
+    if (m && typeof m.item === 'string' && typeof m.category === 'string') {
+      return [{ item: m.item, category: m.category }];
+    }
+    if (m && typeof m.category === 'string' && Array.isArray(m.items)) {
+      return m.items
+        .map(i => String(i || '').trim())
+        .filter(Boolean)
+        .map(i => ({ item: i, category: m.category }));
+    }
+    return [];
+  });
+
+  if (!item.prompt || pairs.length === 0) {
     return renderIncompleteCard(item, sectionIndex, onComplete, 'Categorize card data is malformed.');
   }
-  const state = ensureCardState(sectionIndex, { submitted: false, placements: {}, selectedItem: '', wasCorrect: false, completed: false });
+
+  const state = ensureCardState(sectionIndex, {
+    submitted: false,
+    placements: {},
+    selectedItem: '',
+    wasCorrect: false,
+    completed: false
+  });
+
   if (typeof state.selectedItem !== 'string') state.selectedItem = '';
-  const categories = item.categoryMappings.map(m => m.category);
+
+  const categories = [...new Set(pairs.map(p => p.category))];
+  const allItems = [...new Set(pairs.map(p => p.item))];
+
   const expected = {};
-  item.categoryMappings.forEach(m => m.items.forEach(i => expected[i] = m.category));
+  pairs.forEach(p => {
+    expected[p.item] = p.category;
+  });
+
   const isCoarsePointer = isCoarsePointerDevice();
 
   const block = document.createElement('div');
   block.className = 'section-block';
-  const itemPool = item.options.filter(opt => !state.placements[opt]);
+
+  const itemPool = allItems.filter(opt => !state.placements[opt]);
+
   const poolHtml = itemPool.map(opt => {
     const isSelected = !state.submitted && state.selectedItem === opt;
     return `<div class="drag-item ${isSelected ? 'selected' : ''}" draggable="${state.submitted || isCoarsePointer ? 'false' : 'true'}" data-item="${html(opt)}">${html(opt)}</div>`;
   }).join('');
+
   const zonesHtml = categories.map(cat => {
     const items = Object.entries(state.placements)
       .filter(([, c]) => c === cat)
@@ -5386,6 +5417,7 @@ function renderCategorizeCard(item, sectionIndex, onComplete) {
         const classes = `drag-item placed ${isSelected ? 'selected' : ''}`.trim();
         return `<div class="${classes}" data-item="${html(i)}" draggable="${state.submitted || isCoarsePointer ? 'false' : 'true'}">${html(i)}</div>`;
       }).join('');
+
     return `<div class="drop-zone" data-category="${html(cat)}"><div class="drop-zone-title">${html(cat)}</div>${items}</div>`;
   }).join('');
 
@@ -5407,72 +5439,85 @@ function renderCategorizeCard(item, sectionIndex, onComplete) {
         <div class="drop-zones">${zonesHtml}</div>
       </div>
       <button class="action-btn">Check answer</button>
-      ${renderFeedbackAndRationale(item, state, state.submitted ? (state.wasCorrect ? 'correct':'incorrect') : 'neutral')}
+      ${renderFeedbackAndRationale(item, state, state.submitted ? (state.wasCorrect ? 'correct' : 'incorrect') : 'neutral')}
       ${interactiveContinueHtml(state)}
     </div>
   `);
 
-  if (!state.submitted) {
-    const resetBtn = block.querySelector('.categorize-reset-btn');
-    resetBtn?.addEventListener('click', () => {
+  const assignFromElement = (el, category) => {
+    const itemName = el?.dataset?.item || '';
+    if (!itemName || state.submitted) return;
+    assignSelectedItemToCategory(state, itemName, category);
+    replaceCard(block, renderCategorizeCard(item, sectionIndex, onComplete));
+  };
+
+  const draggableItems = [...block.querySelectorAll('.drag-item')];
+  const dropZones = [...block.querySelectorAll('.drag-pool, .drop-zone')];
+
+  draggableItems.forEach(el => {
+    el.addEventListener('dragstart', e => {
+      if (state.submitted || isCoarsePointer) return;
+      e.dataTransfer.setData('text/plain', el.dataset.item || '');
+    });
+
+    if (isCoarsePointer && !state.submitted) {
+      el.addEventListener('click', () => {
+        state.selectedItem = (state.selectedItem === el.dataset.item) ? '' : (el.dataset.item || '');
+        persistProgress();
+        replaceCard(block, renderCategorizeCard(item, sectionIndex, onComplete));
+      });
+    }
+  });
+
+  dropZones.forEach(zone => {
+    zone.addEventListener('dragover', e => {
+      if (state.submitted || isCoarsePointer) return;
+      e.preventDefault();
+    });
+
+    zone.addEventListener('drop', e => {
+      if (state.submitted || isCoarsePointer) return;
+      e.preventDefault();
+      const itemName = e.dataTransfer.getData('text/plain');
+      if (!itemName) return;
+      assignSelectedItemToCategory(state, itemName, zone.dataset.category || '');
+      replaceCard(block, renderCategorizeCard(item, sectionIndex, onComplete));
+    });
+
+    if (isCoarsePointer && !state.submitted) {
+      zone.addEventListener('click', () => {
+        if (!state.selectedItem) return;
+        assignSelectedItemToCategory(state, state.selectedItem, zone.dataset.category || '');
+        replaceCard(block, renderCategorizeCard(item, sectionIndex, onComplete));
+      });
+    }
+  });
+
+  const resetBtn = block.querySelector('.categorize-reset-btn');
+  if (resetBtn && !state.submitted) {
+    resetBtn.addEventListener('click', () => {
       state.placements = {};
       state.selectedItem = '';
       persistProgress();
       replaceCard(block, renderCategorizeCard(item, sectionIndex, onComplete));
     });
+  }
 
-    if (!isCoarsePointer) {
-      let dragged = null;
-      block.querySelectorAll('.drag-item[draggable="true"]').forEach(el => {
-        el.addEventListener('dragstart', () => { dragged = el.dataset.item; });
-      });
-      block.querySelectorAll('.drop-zone, .drag-pool').forEach(zone => {
-        zone.addEventListener('dragover', e => e.preventDefault());
-        zone.addEventListener('drop', e => {
-          e.preventDefault();
-          if (!dragged) return;
-          const cat = zone.dataset.category || '';
-          assignSelectedItemToCategory(state, dragged, cat);
-          replaceCard(block, renderCategorizeCard(item, sectionIndex, onComplete));
-        });
-      });
-    }
-
-    block.querySelectorAll('.drag-item').forEach(el => {
-      el.addEventListener('click', () => {
-        if (!isCoarsePointer) return;
-        const tapped = el.dataset.item;
-        if (!tapped) return;
-        if (state.placements[tapped]) delete state.placements[tapped];
-        state.selectedItem = state.selectedItem === tapped ? '' : tapped;
-        persistProgress();
-        replaceCard(block, renderCategorizeCard(item, sectionIndex, onComplete));
-      });
-    });
-
-    block.querySelectorAll('.drop-zone').forEach(zone => {
-      zone.addEventListener('click', () => {
-        if (!isCoarsePointerDevice()) return;
-        const selected = state.selectedItem;
-        const cat = zone.dataset.category || '';
-        if (!selected || !cat) return;
-        assignSelectedItemToCategory(state, selected, cat);
-        replaceCard(block, renderCategorizeCard(item, sectionIndex, onComplete));
-      });
-    });
-
-    block.querySelector('.action-btn').addEventListener('click', () => {
+  const btn = block.querySelector('.action-btn');
+  if (!state.submitted) {
+    btn.addEventListener('click', () => {
+      if (Object.keys(state.placements).length !== allItems.length) return;
       if (!state.submitted && isQuestionCardType(item.type)) totalQuestions++;
-      const allPlaced = item.options.every(opt => state.placements[opt]);
+
       state.submitted = true;
-      state.selectedItem = '';
-      state.wasCorrect = allPlaced && item.options.every(opt => expected[opt] === state.placements[opt]);
+      state.wasCorrect = allItems.every(i => state.placements[i] === expected[i]);
       if (state.wasCorrect) correctFirst++;
+      interactionTimes.push(Date.now());
       persistProgress();
       replaceCard(block, renderCategorizeCard(item, sectionIndex, onComplete));
     });
   } else {
-    block.querySelector('.action-btn')?.remove();
+    btn.remove();
   }
 
   bindInteractiveContinue(block, state, onComplete, item.slot, sectionIndex);
