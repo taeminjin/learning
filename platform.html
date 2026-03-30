@@ -2234,8 +2234,11 @@ function shuffleArray(arr) {
 }
 
 function splitBlob(value) {
-  return String(value || '')
-    .split('||')
+  const raw = String(value || '').trim();
+  if (!raw) return [];
+
+  return raw
+    .split(/\s*\|\|\s*|\s*\|\s*/g)
     .map(s => s.trim())
     .filter(Boolean);
 }
