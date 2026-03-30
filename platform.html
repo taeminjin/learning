@@ -5072,23 +5072,25 @@ function renderIncompleteCard(item, sectionIndex, onComplete, message = 'This ca
 
 function renderFeedbackAndRationale(item, state, correctness = 'neutral') {
   if (!state.submitted) return '';
+
   const statusClass = correctness === 'correct'
     ? 'correct-fb'
     : correctness === 'incorrect'
       ? 'incorrect-fb'
       : 'correct-fb';
+
   const statusLabel = correctness === 'correct'
     ? '✓ Correct'
     : correctness === 'incorrect'
       ? '✗ Not quite'
       : 'Submitted';
-  const feedbackHtml = item.feedback
-    ? `<div class="feedback-box show ${statusClass}"><span class="feedback-label">Feedback</span><div>${html(item.feedback)}</div></div>`
-    : `<div class="feedback-box show ${statusClass}"><span class="feedback-label">${statusLabel}</span></div>`;
-  const rationaleHtml = item.rationale
-    ? `<div class="rationale-box"><span class="feedback-label">Rationale</span><div>${html(item.rationale)}</div></div>`
-    : '';
-  return feedbackHtml + rationaleHtml;
+
+  return `
+    <div class="feedback-box show ${statusClass}">
+      <span class="feedback-label">${statusLabel}</span>
+      ${item.rationale ? `<div>${html(item.rationale)}</div>` : ''}
+    </div>
+  `;
 }
 
 function ensureCardState(sectionIndex, defaults = {}) {
