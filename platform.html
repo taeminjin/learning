@@ -199,7 +199,6 @@
       border-radius: 16px;
       padding: 36px;
       box-shadow: var(--shadow);
-      transform: scale(1.05);
     }
 
 
@@ -281,12 +280,6 @@
       margin-bottom: 8px;
     }
     .dashboard-card h3 { margin: 0 0 8px; font-size: 0.98rem; }
-    #streak-goal-card { padding: 10px 12px; }
-    .streak-line { font-size: 1rem; font-weight: 600; margin-bottom: 4px; }
-    .goal-progress-track { width: 100%; height: 9px; background: var(--cream); border: 1px solid var(--rule); border-radius: 999px; overflow: hidden; margin-bottom: 4px; }
-    .goal-progress-fill { height: 100%; background: var(--gold); transition: width 0.25s ease; }
-    .goal-progress-fill.goal-complete { background: #0d8f4d; }
-    .goal-inline-status { font-size: 0.84rem; color: var(--navy-mid); }
     .modules-list { display:flex; flex-direction:column; gap:10px; }
     .module-item { border:1px solid var(--rule); border-radius:10px; padding:12px; display:flex; justify-content:space-between; gap:10px; align-items:center; }
     .module-meta p { margin: 2px 0; font-size:0.85rem; color:var(--muted); }
@@ -295,17 +288,6 @@
     .dashboard-error { margin-top: 10px; color: var(--red); font-size: 0.85rem; min-height: 1.1em; }
     .assignment-entry-row { display:flex; gap:10px; align-items:center; }
     .assignment-entry-row .gate-input { flex:1; }
-    .practice-modules-strip { margin-top: 8px; display:flex; gap:8px; overflow-x:auto; padding-bottom:2px; }
-    .practice-module-box {
-      min-width: 220px;
-      border:1px solid var(--rule);
-      border-radius:10px;
-      padding:10px;
-      background: var(--white);
-      cursor:pointer;
-    }
-    .practice-module-box:hover { border-color: var(--gold); }
-    .practice-module-box p { margin: 4px 0; font-size: 0.82rem; color: var(--muted); }
 
     .practice-setup-card {
       border: 1px solid var(--rule);
@@ -830,18 +812,6 @@
     }
 
 
-    .overall-progress {
-      margin-top: 16px;
-      display: inline-flex;
-      gap: 14px;
-      flex-wrap: wrap;
-      font-size: 0.74rem;
-      color: var(--muted);
-      background: var(--white);
-      border: 1px solid var(--rule);
-      border-radius: 999px;
-      padding: 5px 12px;
-    }
 
     .section-accordion {
       margin-top: 18px;
@@ -879,7 +849,7 @@
 
     /* ── SECTION BLOCK ── */
     .section-block {
-      margin-top: 48px;
+      margin-top: 32px;
       display: none;
       opacity: 0;
       transform: translateY(20px);
@@ -894,38 +864,6 @@
       pointer-events: auto;
     }
 
-    /* ── SECTION LABEL ── */
-    .section-label {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 8px;
-    }
-
-    .section-num {
-      font-family: var(--serif);
-      font-size: 0.75rem;
-      font-weight: 700;
-      color: var(--gold);
-      letter-spacing: 0.06em;
-    }
-
-    .section-rule {
-      flex: 1;
-      height: 1px;
-      background: var(--rule);
-    }
-
-    .section-type-badge {
-      font-size: 0.65rem;
-      font-weight: 600;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: var(--muted);
-      padding: 2px 8px;
-      border: 1px solid var(--rule);
-      border-radius: 999px;
-    }
 
     /* ── VIDEO BLOCK ── */
     .video-card {
@@ -936,11 +874,25 @@
       box-shadow: var(--shadow);
     }
 
+    .video-card-header {
+      padding: 24px 24px 16px;
+    }
+
+    .video-card .content-header {
+      margin-bottom: 10px;
+    }
+
+    .video-card .content-body {
+      margin-bottom: 0;
+    }
+
     .video-wrapper {
       position: relative;
       padding-bottom: 56.25%;
       height: 0;
       background: #000;
+      border-top: 1px solid var(--rule);
+      border-bottom: 1px solid var(--rule);
     }
 
     .video-wrapper iframe {
@@ -950,13 +902,32 @@
       border: none;
     }
 
+    .video-unavailable {
+      padding: 24px 20px;
+      border-top: 1px solid var(--rule);
+      background: #f8fbff;
+      color: var(--navy);
+    }
+
+    .video-unavailable small {
+      display: block;
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 0.75rem;
+      line-height: 1.4;
+    }
+
     .video-footer {
       padding: 16px 20px;
       display: flex;
+      justify-content: flex-end;
       align-items: center;
-      justify-content: space-between;
       gap: 12px;
-      border-top: 1px solid var(--rule);
+      background: var(--white);
+    }
+
+    .video-footer .action-btn {
+      min-width: 120px;
     }
 
     .video-footer-label {
@@ -965,222 +936,13 @@
       font-style: italic;
     }
 
-    /* ── QUIZ BLOCK ── */
-    .quiz-card {
-      background: var(--white);
-      border: 1px solid var(--rule);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      overflow: hidden;
-    }
-
-    .quiz-header {
-      padding: 16px 22px 12px;
-      border-bottom: 1px solid var(--rule);
-      background: var(--cream-dark);
-    }
-
-    .quiz-header-label {
-      font-size: 0.68rem;
-      font-weight: 600;
-      letter-spacing: 0.18em;
-      text-transform: uppercase;
-      color: var(--gold);
-      margin-bottom: 2px;
-    }
-
-    .quiz-header-sub {
-      font-size: 0.82rem;
-      color: var(--muted);
-    }
-
     /* ── QUESTION ── */
-    .question-block {
-      padding: 24px 22px;
-      border-bottom: 1px solid var(--rule);
-      display: none;
-    }
-
-    .question-block.active { display: block; }
-    .question-block.answered { display: block; }
-
-    .question-progress {
-      font-size: 0.82rem;
-      font-weight: 500;
-      letter-spacing: 0.02em;
-      text-transform: none;
-      color: #6b7a90;
-      margin-bottom: 10px;
-    }
-
-    .question-stem {
-      font-family: var(--serif);
-      font-size: 1.12rem;
-      font-weight: 400;
-      line-height: 1.7;
-      color: var(--navy);
-      margin-bottom: 18px;
-    }
-
-    /* ── OPTIONS ── */
-    .options-list {
-      list-style: none;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .option-btn {
-      width: 100%;
-      text-align: left;
-      padding: 14px 16px;
-      background: var(--white);
-      border: 1px solid var(--rule);
-      border-radius: 12px;
-      font-family: var(--sans);
-      font-size: 0.98rem;
-      font-weight: 400;
-      color: var(--navy);
-      cursor: pointer;
-      display: flex;
-      align-items: flex-start;
-      gap: 12px;
-      transition: background 0.15s, border-color 0.15s;
-      line-height: 1.55;
-      text-transform: none;
-      letter-spacing: 0;
-    }
-
-    .option-btn:hover:not(:disabled) {
-      background: #f7faff;
-      border-color: var(--gold);
-    }
-
-    .option-letter {
-      flex: 0 0 24px;
-      height: 24px;
-      border-radius: 50%;
-      background: var(--white);
-      border: 1px solid var(--rule);
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 0.75rem;
-      font-weight: 600;
-      color: var(--muted);
-      margin-top: 1px;
-      transition: background 0.15s, border-color 0.15s, color 0.15s;
-    }
-
-    .option-btn:hover:not(:disabled) .option-letter {
-      background: var(--gold);
-      border-color: var(--gold);
-      color: var(--white);
-    }
-
-    /* Correct state */
-    .option-btn.correct {
-      background: var(--green-lt);
-      border-color: var(--green);
-      cursor: default;
-    }
-
-    .option-btn.correct .option-letter {
-      background: var(--green);
-      border-color: var(--green);
-      color: var(--white);
-    }
-
-    /* Incorrect state */
-    .option-btn.incorrect {
-      background: var(--red-lt);
-      border-color: var(--red);
-      cursor: default;
-    }
-
-    .option-btn.incorrect .option-letter {
-      background: var(--red);
-      border-color: var(--red);
-      color: var(--white);
-    }
-
-    /* Dimmed (other options after answering) */
-    .option-btn.dimmed {
-      opacity: 0.45;
-      cursor: default;
-    }
-
-    /* IDK option */
-    .option-btn.idk-option {
-      border-style: dashed;
-      color: var(--muted);
-      font-style: italic;
-    }
-
-    .option-btn.idk-option .option-letter {
-      font-style: normal;
-    }
-
-    .option-btn:disabled { cursor: default; }
-
-    /* ── FEEDBACK ── */
-    .feedback-box {
-      margin-top: 18px;
-      padding: 14px 16px;
-      border-radius: var(--radius);
-      font-size: 0.8rem;
-      line-height: 1.65;
-      display: none;
-    }
-
-    .feedback-box.show { display: block; }
-
-    .feedback-box.correct-fb {
-      background: var(--green-lt);
-      border: 1px solid var(--green);
-      color: #14532d;
-    }
-
-    .feedback-box.incorrect-fb {
-      background: var(--red-lt);
-      border: 1px solid #d97777;
-      color: var(--red);
-    }
-
-    .feedback-label {
-      font-weight: 600;
-      font-size: 0.78rem;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      margin-bottom: 0;
-      display: block;
-    }
-
-    .feedback-next-btn {
-      margin-top: 14px;
-      font-family: var(--sans);
-      font-size: 0.8rem;
-      font-weight: 600;
-      letter-spacing: 0.02em;
-      text-transform: none;
-      padding: 9px 18px;
-      background: var(--navy);
-      color: var(--cream);
-      border: none;
-      border-radius: 12px;
-      cursor: pointer;
-      transition: background 0.2s;
-      display: none;
-    }
-
-    .feedback-next-btn.show { display: inline-block; }
-    .feedback-next-btn:hover { background: var(--navy-mid); }
 
     .interactive-card {
       background: var(--white);
-      border: 1px solid var(--rule);
-      border-radius: var(--radius);
-      padding: 18px;
+      border: 1px solid #e3e8f0;
+      border-radius: 14px;
+      padding: 14px 14px 12px;
       box-shadow: var(--shadow);
       display: grid;
       gap: 12px;
@@ -1197,14 +959,6 @@
       gap: 10px;
     }
 
-    .rationale-box {
-      margin-top: 10px;
-      padding: 14px 16px;
-      border-radius: var(--radius);
-      border: 1px solid var(--rule);
-      background: var(--cream);
-      font-size: 0.82rem;
-    }
 
     .reflection-input {
       width: 100%;
@@ -1224,118 +978,6 @@
       padding: 10px 12px;
       font-size: 0.82rem;
       color: var(--muted);
-    }
-
-    .categorize-layout {
-      display: grid;
-      gap: 12px;
-      grid-template-columns: 1fr 1fr;
-    }
-
-    .drag-pool,
-    .drop-zone {
-      border: 1px dashed var(--rule);
-      border-radius: var(--radius);
-      padding: 10px;
-      min-height: 100px;
-      background: var(--cream);
-      display: flex;
-      gap: 8px;
-      align-content: flex-start;
-      flex-wrap: wrap;
-    }
-
-    .drop-zone-title {
-      width: 100%;
-      font-weight: 600;
-      font-size: 0.82rem;
-      color: var(--navy-mid);
-    }
-
-    .drag-item {
-      background: var(--white);
-      border: 1px solid var(--rule);
-      border-radius: 999px;
-      padding: 6px 10px;
-      font-size: 0.82rem;
-      cursor: grab;
-    }
-
-    .drag-item.placed { cursor: default; }
-
-    .drag-item.selected {
-      border-color: var(--gold);
-      box-shadow: 0 0 0 2px rgba(47, 110, 220, 0.2);
-      background: #f2f7ff;
-    }
-
-    .categorize-toolbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-      margin: 4px 0 10px;
-    }
-
-    .categorize-mobile-helper {
-      font-size: 0.76rem;
-      color: var(--muted);
-      font-weight: 400;
-    }
-
-    .categorize-reset-btn {
-      min-height: 32px;
-      padding: 6px 10px;
-      border-radius: 12px;
-      border: 1px solid var(--rule);
-      background: var(--white);
-      color: var(--navy-mid);
-      font-family: var(--sans);
-      font-size: 0.74rem;
-      font-weight: 600;
-      letter-spacing: 0.02em;
-      text-transform: none;
-      cursor: pointer;
-    }
-
-    .categorize-reset-btn:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-
-    /* ── QUIZ COMPLETE ── */
-    .quiz-complete {
-      padding: 22px 22px;
-      display: none;
-      align-items: center;
-      gap: 14px;
-      background: var(--green-lt);
-      border-top: 1px solid var(--green);
-    }
-
-    .quiz-complete.show { display: flex; }
-
-    .quiz-complete-icon {
-      font-size: 1.4rem;
-      flex: 0 0 auto;
-    }
-
-    .quiz-complete-text {
-      flex: 1;
-    }
-
-    .quiz-complete-text strong {
-      display: block;
-      font-size: 0.88rem;
-      font-weight: 600;
-      color: var(--green);
-      margin-bottom: 2px;
-    }
-
-    .quiz-complete-text span {
-      font-size: 0.82rem;
-      color: var(--green);
-      opacity: 0.8;
     }
 
     /* ── ACTION BUTTON (Done Watching / Continue) ── */
@@ -1464,9 +1106,8 @@
     /* ── CONTINUE ROW ── */
     .continue-row {
       margin-top: 20px;
-      display: flex;
-      justify-content: flex-end;
       display: none;
+      justify-content: flex-end;
     }
 
     .continue-row.show { display: flex; }
@@ -1580,6 +1221,7 @@
     .text-image-inner {
       display: grid;
       grid-template-columns: 3fr 2fr;
+      align-items: stretch;
     }
 
     .text-image-text {
@@ -1591,13 +1233,15 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      min-height: 220px;
       padding: 20px;
       background: var(--cream-dark);
     }
 
     .text-image-img img {
+      display: block;
       max-width: 100%;
-      max-height: 280px;
+      max-height: 260px;
       object-fit: contain;
       border-radius: 6px;
       cursor: zoom-in;
@@ -1605,6 +1249,18 @@
     }
 
     .text-image-img img:hover { opacity: 0.88; }
+
+    .text-image-fallback {
+      width: 100%;
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.86rem;
+      font-style: italic;
+      border: 1px dashed var(--rule);
+      border-radius: 8px;
+      padding: 14px 10px;
+      background: var(--white);
+    }
 
     /* ── QUESTION + IMAGE BLOCK ── */
     .question-image-card {
@@ -1727,8 +1383,8 @@
       /* Cards — tighter padding */
       .text-card,
       .question-card,
-      .video-card,
       .completion-card { padding: 20px; }
+      .video-card-header { padding: 20px 20px 14px; }
       .text-image-text,
       .question-image-question { padding: 20px; }
 
@@ -2019,16 +1675,18 @@
           <div id="full-question-content"></div>
         </div>
       </div>
-      <p class="dashboard-error" id="dashboard-error"></p>
     </section>
 
     <section class="dashboard-card" id="assignment-card">
       <h3>Enter Module Code</h3>
+      <p style="font-size:0.85rem; color:var(--muted); margin: 4px 0 10px;">Enter the code provided by your instructor to open an assigned module.</p>
       <div class="assignment-entry-row">
         <input class="gate-input" id="assignment-key-input" type="text" placeholder="Enter module code" autocomplete="off" autocapitalize="none" spellcheck="false" />
         <button class="action-btn" type="button" id="assignment-key-btn">Open module</button>
       </div>
     </section>
+
+    <p class="dashboard-error" id="dashboard-error"></p>
 
     <div class="module-help-link-wrap">
       <a href="about_platform.html" class="module-help-link">About</a>
@@ -2049,11 +1707,6 @@
       <div class="module-header-actions">
       <span class="module-participant" id="participant-badge"></span>
       <button class="action-btn secondary" id="btn-save-exit" type="button">Save and exit</button>
-      </div>
-      <div class="overall-progress" id="overall-progress">
-        <span id="overall-total">Sections: 0</span>
-        <span id="overall-current">Current: —</span>
-        <span id="overall-completed">Completed: 0</span>
       </div>
     </header>
     <div id="sections-container"></div>
@@ -2139,7 +1792,6 @@ const SUBMIT_URL = 'https://script.google.com/macros/s/AKfycbyxevT1EWOj_IgdmL2oF
 const PRACTICE_API_URL = 'https://script.google.com/macros/s/AKfycbyGXa8KdMd5kYJrkOew56oljtPPNvKpNxMnMf1IsHp2C0XAeth7fP-MDhzPlkhUvPXlpQ/exec';
 const PRACTICE_SESSION_STORAGE_KEY = 'inProgressPracticeSession';
 const GOOGLE_CLIENT_ID = '534534627380-bd6hjuj4ihbf6i7r2qsjnen6cqhm14ma.apps.googleusercontent.com';
-const ENABLE_DEMO_FALLBACK = false;
 
 // ─────────────────────────────────────────────
 // STATE
@@ -2151,7 +1803,6 @@ let currentUserEmail = '';
 let currentUserName  = '';
 let isAuthenticated  = false;
 let availableModules = [];
-let practiceCourses = [];
 let practiceModules = [];
 let practiceTopics = [];
 let practiceQuestionContainerHome = {
@@ -2179,7 +1830,6 @@ let practiceTestState = {
   incorrectCount: 0
 };
 let assignmentEntryEnabled = true;
-let dashboardStats = null;
 let currentModuleMeta = null;
 let moduleTitleText = 'Course Learning Module';
 let moduleLabelText = 'Student Learning Module';
@@ -2288,6 +1938,34 @@ function html(v) {
     .replace(/'/g, '&#39;');
 }
 
+function normalizeYouTubeVideoId(raw) {
+  const value = String(raw || '').trim();
+  if (!value) return '';
+
+  const idPattern = /^[A-Za-z0-9_-]{11}$/;
+  if (idPattern.test(value)) return value;
+
+  try {
+    const url = new URL(value);
+    const host = url.hostname.replace(/^www\./i, '').toLowerCase();
+    let candidate = '';
+
+    if (host === 'youtube.com' || host.endsWith('.youtube.com')) {
+      if (url.pathname === '/watch') {
+        candidate = url.searchParams.get('v') || '';
+      } else if (url.pathname.startsWith('/embed/')) {
+        candidate = url.pathname.split('/')[2] || '';
+      }
+    } else if (host === 'youtu.be') {
+      candidate = url.pathname.replace(/^\/+/, '').split('/')[0] || '';
+    }
+
+    return idPattern.test(candidate) ? candidate : '';
+  } catch {
+    return '';
+  }
+}
+
 function formatDuration(ms) {
   const s = Math.floor(ms / 1000);
   const m = Math.floor(s / 60);
@@ -2323,11 +2001,6 @@ function updateProgress() {
   const counter = $('section-counter');
   counter.textContent = `${completedSlots.size} / ${totalSlots}`;
   counter.style.opacity = totalSlots > 0 ? '1' : '0';
-
-  const completedSections = allSections.filter(sec => sec.completed).length;
-  $('overall-total').textContent = `Sections: ${allSections.length}`;
-  $('overall-current').textContent = `Current: ${Math.min(progressionSectionIndex + 1, allSections.length)} / ${allSections.length}`;
-  $('overall-completed').textContent = `Completed: ${completedSections}`;
 }
 
 
@@ -2408,15 +2081,6 @@ function getFriendlyNetworkMessage(error) {
   return error.message || 'Something went wrong. Please try again.';
 }
 
-async function fetchPracticeQuestionsTest() {
-  try {
-    return await fetchPracticeQuestions();
-  } catch (err) {
-    console.error('Practice question test failed:', err);
-    alert('Practice question test failed: ' + err.message);
-    return [];
-  }
-}
 
 const PRACTICE_TOPICS_CACHE_KEY = 'practice_topics_cache_v1';
 const PRACTICE_TOPICS_CACHE_MAX_AGE_MS = 6 * 60 * 60 * 1000;
@@ -3669,42 +3333,6 @@ function recordPracticeQuestionResult(question, isCorrect) {
   savePracticeSessionToLocal();
 }
 
-function updateDashboardStreakAndProgress(questionsToday) {
-  const streakSummaryEl = document.getElementById('streak-goal-summary');
-  if (!streakSummaryEl) return;
-
-  const dailyGoal = Number(dashboardStats?.daily_goal) > 0 ? Number(dashboardStats.daily_goal) : 20;
-  const safeQuestionsToday = Math.max(0, Number(questionsToday) || 0);
-  const streakPercent = Math.min(100, (safeQuestionsToday / dailyGoal) * 100);
-
-  const goalProgressFill = streakSummaryEl.querySelector('.goal-progress-fill') || document.querySelector('.goal-progress-fill');
-  if (goalProgressFill) {
-    goalProgressFill.style.width = `${streakPercent}%`;
-    if (safeQuestionsToday >= dailyGoal) {
-      goalProgressFill.classList.add('goal-complete');
-    } else {
-      goalProgressFill.classList.remove('goal-complete');
-    }
-  }
-
-  const inlineStatus = streakSummaryEl.querySelector('.goal-inline-status');
-  if (inlineStatus) {
-    inlineStatus.textContent = `${safeQuestionsToday} / ${dailyGoal} questions`;
-  } else {
-    streakSummaryEl.textContent = `${safeQuestionsToday} / ${dailyGoal} questions`;
-  }
-
-  const progressTrack = streakSummaryEl.querySelector('.goal-progress-track');
-  if (progressTrack) {
-    progressTrack.setAttribute('aria-valuenow', String(Math.min(safeQuestionsToday, dailyGoal)));
-  }
-
-  dashboardStats = {
-    ...(dashboardStats || {}),
-    daily_goal: dailyGoal,
-    questions_today: safeQuestionsToday
-  };
-}
 
 async function submitPracticeResultsAndUpdateDashboard(options = {}) {
   const { showAlertOnError = true } = options;
@@ -3733,11 +3361,6 @@ async function submitPracticeResultsAndUpdateDashboard(options = {}) {
 
     if (data.ok) {
       practiceTestState.resultsSubmitted = true;
-
-      if (data.daily_total_updated) {
-        updateDashboardStreakAndProgress(data.questions_today);
-      }
-
       console.log("Practice results submitted successfully:", data);
     } else {
       console.log("Practice results submission failed:", data);
@@ -3977,6 +3600,7 @@ function renderFITBQuestion(q, index, total) {
   if (!container) return;
 
   const stateKey = getPracticeQuestionStateKey(q);
+  const acceptedAnswers = parseAcceptedFitbAnswers(q.correct_blob || '');
 
   container.innerHTML = `
     <div class="practice-question-card">
@@ -4048,7 +3672,7 @@ function renderFITBQuestion(q, index, total) {
       handlePracticeFITBAnswer(
         q,
         selected,
-        String(q.correct_blob || "").trim(),
+        acceptedAnswers,
         q.rationale || ""
       );
     });
@@ -4551,7 +4175,7 @@ function handlePracticeAnswer(question, selected, correct, rationale) {
   }
 }
 
-function handlePracticeFITBAnswer(question, selected, correct, rationale) {
+function handlePracticeFITBAnswer(question, selected, correctInput, rationale) {
   const container = document.getElementById("practice-question-container");
   if (!container) return;
 
@@ -4561,17 +4185,11 @@ function handlePracticeFITBAnswer(question, selected, correct, rationale) {
   const input = container.querySelector("#practice-fitb-input");
   const submitBtn = container.querySelector("#practice-fitb-submit");
 
-  const normalize = (value) =>
-    String(value || "")
-      .toLowerCase()
-      .replace(/[^\w\s]/g, "")
-      .replace(/\s+/g, " ")
-      .trim();
-
-  const selectedNorm = normalize(selected);
-  const correctNorm = normalize(correct);
-
-  const isCorrect = selectedNorm === correctNorm;
+  const acceptedAnswers = Array.isArray(correctInput)
+    ? correctInput
+    : parseAcceptedFitbAnswers(correctInput);
+  const displayedCorrect = getDisplayedFitbAnswer(acceptedAnswers);
+  const isCorrect = isFitbAnswerCorrect(selected, acceptedAnswers);
 
   if (input) {
     input.disabled = true;
@@ -4596,7 +4214,7 @@ function handlePracticeFITBAnswer(question, selected, correct, rationale) {
       feedback.innerHTML = `
         <div style="margin-top:6px; padding:12px 14px; border-radius:10px; background:#fef2f2; border:1px solid #991b1b; color:#991b1b;">
           <strong>Incorrect ❌</strong><br>
-          Correct answer: ${correct}
+          Correct answer: ${displayedCorrect}
         </div>
         ${buildPracticeRationaleHtml(rationale)}
       `;
@@ -4615,7 +4233,7 @@ function handlePracticeFITBAnswer(question, selected, correct, rationale) {
     practiceTestState.answerState[stateKey] = {
       type: question.item_type || question.question_type || 'fitb',
       selected,
-      correct,
+      correct: acceptedAnswers.join('|'),
       rationale: rationale || '',
       feedbackShown: true
     };
@@ -5053,11 +4671,6 @@ function renderIncompleteCard(item, sectionIndex, onComplete, message = 'This ca
   block.className = 'section-block';
   block.id = `section-${sectionIndex}`;
   block.innerHTML = `
-    <div class="section-label">
-      <span class="section-num">Section ${sectionIndex + 1}</span>
-      <div class="section-rule"></div>
-      <span class="section-type-badge">Card</span>
-    </div>
     <div class="text-card">
       <h2 class="content-header">Card unavailable</h2>
       <div class="content-body">${html(message)}</div>
@@ -5099,14 +4712,7 @@ function ensureCardState(sectionIndex, defaults = {}) {
 }
 
 function baseCardShell(sectionIndex, badge, inner) {
-  return `
-    <div class="section-label">
-      <span class="section-num">Section ${sectionIndex + 1}</span>
-      <div class="section-rule"></div>
-      <span class="section-type-badge">${badge}</span>
-    </div>
-    ${inner}
-  `;
+  return inner;
 }
 
 function attachContinue(block, sectionIndex, onComplete, slot) {
@@ -5147,19 +4753,35 @@ function replaceCard(block, nextBlock) {
 
 function renderVideoBlock(item, sectionIndex, onComplete) {
   if (!item.mediaUrl) return renderIncompleteCard(item, sectionIndex, onComplete, 'Video card is missing media_url (YouTube ID).');
+  // Video cards require a YouTube video ID (11 chars), not a channel ID.
+  const videoId = normalizeYouTubeVideoId(item.mediaUrl);
   const block = document.createElement('div');
   block.className = 'section-block';
   block.id = `section-${sectionIndex}`;
   block.innerHTML = baseCardShell(sectionIndex, 'Video', `
     <div class="video-card">
-      <h2 class="content-header">${html(item.header)}</h2>
-      <div class="content-body">${html(item.body)}</div>
-      <div class="video-wrapper">
-        <iframe src="https://www.youtube.com/embed/${html(item.mediaUrl)}?rel=0&modestbranding=1" title="Training video ${sectionIndex + 1}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+      <div class="video-card-header">
+        <h2 class="content-header">${html(item.header)}</h2>
+        <div class="content-body">${html(item.body)}</div>
+      </div>
+      ${videoId
+        ? `<div class="video-wrapper">
+            <iframe src="https://www.youtube.com/embed/${html(videoId)}?rel=0&modestbranding=1" title="Training video ${sectionIndex + 1}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+          </div>`
+        : `<div class="video-unavailable">
+            <strong>Video unavailable</strong>
+            <small>Source: ${html(item.mediaUrl)}</small>
+          </div>`}
+      <div class="video-footer">
+        <button class="action-btn">Continue</button>
       </div>
     </div>
   `);
-  attachContinue(block, sectionIndex, onComplete, item.slot);
+  const continueBtn = block.querySelector('.video-footer .action-btn');
+  continueBtn?.addEventListener('click', () => {
+    logEvent('continue_clicked', { slot: item.slot, sectionIndex });
+    onComplete();
+  }, { once: true });
   return block;
 }
 
@@ -5189,7 +4811,7 @@ function renderTextImageBlock(item, sectionIndex, onComplete) {
           <h2 class="content-header">${html(item.header)}</h2>
           <div class="content-body">${html(item.body)}</div>
         </div>
-        <div class="text-image-img"><img src="${html(item.mediaUrl)}" alt="" /></div>
+        <div class="text-image-img"><img src="${html(item.mediaUrl)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.onerror=null; this.parentElement.innerHTML='&lt;div class=&quot;text-image-fallback&quot;&gt;Image unavailable&lt;/div&gt;';" /></div>
       </div>
     </div>
   `);
@@ -5230,300 +4852,396 @@ function countAnsweredQuestionCards(structure, states) {
   return count;
 }
 
-function renderQuestionCard(item, sectionIndex, onComplete, withImage = false) {
-  if (!item.prompt || item.options.length === 0 || item.answers.length === 0) {
-    return renderIncompleteCard(item, sectionIndex, onComplete, 'Question card is missing prompt/options/answer data.');
-  }
-  const state = ensureCardState(sectionIndex, { submitted: false, selected: '', wasCorrect: false, completed: false });
-  const allowIdk = normalizeBool(item.settings.show_idk);
-  const correctAnswer = item.answers[0];
+function normalizeGradedText(value) {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/[^\w\s]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
 
-  const options = [...item.options];
-  if (allowIdk && !options.includes("I don't know yet")) options.push("I don't know yet");
+function parseAcceptedFitbAnswers(raw) {
+  const seenNormalized = new Set();
+  return String(raw || '')
+    .split('|')
+    .map(value => String(value || '').trim())
+    .filter(Boolean)
+    .filter(value => {
+      const normalized = normalizeGradedText(value);
+      if (!normalized || seenNormalized.has(normalized)) return false;
+      seenNormalized.add(normalized);
+      return true;
+    });
+}
+
+function isFitbAnswerCorrect(userAnswer, acceptedAnswers) {
+  const userNormalized = normalizeGradedText(userAnswer);
+  if (!userNormalized) return false;
+  return (Array.isArray(acceptedAnswers) ? acceptedAnswers : [])
+    .some(answer => normalizeGradedText(answer) === userNormalized);
+}
+
+function getDisplayedFitbAnswer(acceptedAnswers) {
+  if (!Array.isArray(acceptedAnswers)) return '';
+  return acceptedAnswers.find(answer => String(answer || '').trim()) || '';
+}
+
+function buildPracticeStyledResultHtml(isCorrect, correctAnswerText = '') {
+  if (isCorrect) {
+    return `
+      <div style="margin-top:6px; padding:12px 14px; border-radius:10px; background:#dcfce7; border:1px solid #166534; color:#14532d;">
+        <strong>Correct ✅</strong>
+      </div>
+    `;
+  }
+  return `
+    <div style="margin-top:6px; padding:12px 14px; border-radius:10px; background:#fef2f2; border:1px solid #991b1b; color:#991b1b;">
+      <strong>Incorrect ❌</strong>${correctAnswerText ? `<br>${correctAnswerText}` : ''}
+    </div>
+  `;
+}
+
+function markModuleQuestionSubmitted(state, isCorrect) {
+  if (!state.submitted && isQuestionCardType(state.type)) {
+    totalQuestions++;
+  }
+  state.submitted = true;
+  state.wasCorrect = !!isCorrect;
+  if (state.wasCorrect) correctFirst++;
+  interactionTimes.push(Date.now());
+  persistProgress();
+}
+
+function adaptModuleCardToPracticeQuestion(item, sectionIndex) {
+  const type = String(item.type || '').trim().toLowerCase();
+  const mappings = Array.isArray(item.categoryMappings) ? item.categoryMappings : [];
+  const mappingBlob = mappings.map(m => `${m.item}|${m.category}`).join('||');
+  const correctBlobByType = {
+    sba: item.answers?.[0] || '',
+    sba_image: item.answers?.[0] || '',
+    fitb: (item.answers || []).join('|'),
+    sata: (item.answers || []).join('|'),
+    categorize: mappingBlob
+  };
+  const distractorsByType = {
+    sba: (item.options || []).filter(opt => opt !== (item.answers?.[0] || '')).join('|'),
+    sba_image: (item.options || []).filter(opt => opt !== (item.answers?.[0] || '')).join('|'),
+    fitb: '',
+    sata: (item.options || []).join('|'),
+    categorize: ''
+  };
+
+  return {
+    item_type: type,
+    stem: item.prompt || '',
+    rationale: item.rationale || '',
+    media_url: item.mediaUrl || '',
+    correct_blob: correctBlobByType[type] || '',
+    distractors_blob: distractorsByType[type] || '',
+    _moduleStateKey: `module::${sectionIndex}::${item.slot || ''}`
+  };
+}
+
+function renderModuleQuestionCard(item, sectionIndex, onComplete) {
+  const question = adaptModuleCardToPracticeQuestion(item, sectionIndex);
+  const type = question.item_type;
+  const state = ensureCardState(sectionIndex, {
+    type,
+    submitted: false,
+    completed: false,
+    wasCorrect: false,
+    selected: '',
+    selectedAnswers: [],
+    text: '',
+    placements: [],
+    mobileSelectedItem: ''
+  });
 
   const block = document.createElement('div');
   block.className = 'section-block';
   block.id = `section-${sectionIndex}`;
-  const optionsHtml = options.map((opt, idx) => `<label class="poll-option"><input type="radio" name="single-${sectionIndex}" value="${html(opt)}" ${state.selected===opt?'checked':''} ${state.submitted?'disabled':''}/> <span>${String.fromCharCode(65+idx)}. ${html(opt)}</span></label>`).join('');
-  const imageHtml = withImage ? `<div class="question-image-aside"><img src="${html(item.mediaUrl)}" alt="" /></div>` : '';
-  block.innerHTML = baseCardShell(sectionIndex, 'Knowledge Check', `
-    <div class="interactive-card ${withImage ? 'question-image-card' : ''}">
-      <h2 class="content-header">${html(item.header)}</h2>
-      <div class="content-body">${html(item.body)}</div>
-      <p class="question-stem">${html(item.prompt)}</p>
-      <div class="poll-options">${optionsHtml}</div>
-      <button class="action-btn">Check answer</button>
-      ${renderFeedbackAndRationale(item, state, state.submitted ? (state.wasCorrect ? 'correct':'incorrect') : 'neutral')}
-      ${interactiveContinueHtml(state)}
+
+  if (!question.stem) {
+    return renderIncompleteCard(item, sectionIndex, onComplete, 'Question card is missing prompt.');
+  }
+
+  const renderFrame = (inner) => {
+    block.innerHTML = baseCardShell(sectionIndex, 'Knowledge Check', `
+      <div class="interactive-card">
+        <h2 class="content-header">${html(item.header)}</h2>
+        <div class="content-body">${html(item.body)}</div>
+        ${inner}
+        ${interactiveContinueHtml(state)}
+      </div>
+    `);
+    bindInteractiveContinue(block, state, onComplete, item.slot, sectionIndex);
+    return block;
+  };
+
+  if (type === 'sba' || type === 'sba_image') {
+    const correct = String(question.correct_blob || '');
+    if (!correct) return renderIncompleteCard(item, sectionIndex, onComplete, 'SBA card is missing answer data.');
+    const distractors = splitBlob(question.distractors_blob);
+    const options = shuffleArray([correct, ...distractors]);
+    const imageHtml = type === 'sba_image' && question.media_url
+      ? `<div class="practice-image-wrap"><img src="${html(question.media_url)}" alt="Question image" class="practice-image" /></div>`
+      : '';
+
+    renderFrame(`
+      <div id="practice-stem" class="practice-stem">${question.stem}</div>
+      <button id="practice-stem-toggle" class="practice-stem-toggle" style="display:none;" type="button">Expand case</button>
       ${imageHtml}
-    </div>
-  `);
-  const btn = block.querySelector('.action-btn');
-  const submit = () => {
-    const selected = block.querySelector(`input[name="single-${sectionIndex}"]:checked`);
-    if (!selected) return;
-    if (!state.submitted && isQuestionCardType(item.type)) {
-      totalQuestions++;
-    }
-    state.submitted = true;
-    state.selected = selected.value;
-    state.wasCorrect = state.selected === correctAnswer;
-    if (state.wasCorrect) correctFirst++;
-    interactionTimes.push(Date.now());
-    persistProgress();
-    replaceCard(block, renderQuestionCard(item, sectionIndex, onComplete, withImage));
-  };
-  if (!state.submitted) btn.addEventListener('click', submit);
-  else btn.remove();
-  bindInteractiveContinue(block, state, onComplete, item.slot, sectionIndex);
-  return block;
-}
-
-function renderSelectAllCard(item, sectionIndex, onComplete) {
-  if (!item.prompt || item.options.length === 0 || item.answers.length === 0) {
-    return renderIncompleteCard(item, sectionIndex, onComplete, 'Select-all card is missing prompt/options/answers.');
-  }
-  const state = ensureCardState(sectionIndex, { submitted: false, selected: [], wasCorrect: false, completed: false });
-  const correctSet = new Set(item.answers);
-  const block = document.createElement('div');
-  block.className = 'section-block';
-  const optionsHtml = item.options.map(opt => `<label class="poll-option"><input type="checkbox" value="${html(opt)}" ${(state.selected||[]).includes(opt)?'checked':''} ${state.submitted?'disabled':''}/> <span>${html(opt)}</span></label>`).join('');
-  block.innerHTML = baseCardShell(sectionIndex, 'Knowledge Check', `
-    <div class="interactive-card">
-      <h2 class="content-header">${html(item.header)}</h2><div class="content-body">${html(item.body)}</div>
-      <p class="question-stem">${html(item.prompt)}</p>
-      <div class="poll-options">${optionsHtml}</div>
-      <button class="action-btn">Check answer</button>
-      ${renderFeedbackAndRationale(item, state, state.submitted ? (state.wasCorrect ? 'correct':'incorrect') : 'neutral')}
-      ${interactiveContinueHtml(state)}
-    </div>
-  `);
-  const btn = block.querySelector('.action-btn');
-  if (!state.submitted) btn.addEventListener('click', () => {
-    const selected = [...block.querySelectorAll('input[type="checkbox"]:checked')].map(el => el.value);
-    if (!state.submitted && isQuestionCardType(item.type)) totalQuestions++;
-    state.selected = selected;
-    state.submitted = true;
-    state.wasCorrect = selected.length === correctSet.size && selected.every(v => correctSet.has(v));
-    if (state.wasCorrect) correctFirst++;
-    persistProgress();
-    replaceCard(block, renderSelectAllCard(item, sectionIndex, onComplete));
-  }); else btn.remove();
-  bindInteractiveContinue(block, state, onComplete, item.slot, sectionIndex);
-  return block;
-}
-
-function renderFillBlankCard(item, sectionIndex, onComplete) {
-  if (!item.prompt || item.answers.length === 0) return renderIncompleteCard(item, sectionIndex, onComplete, 'Fill blank card is missing prompt/answers.');
-  const state = ensureCardState(sectionIndex, { submitted: false, text: '', wasCorrect: false, completed: false });
-  const caseInsensitive = isCaseInsensitive(item.settings);
-  const block = document.createElement('div');
-  block.className = 'section-block';
-  block.innerHTML = baseCardShell(sectionIndex, 'Knowledge Check', `
-    <div class="interactive-card">
-      <h2 class="content-header">${html(item.header)}</h2><div class="content-body">${html(item.body)}</div>
-      <p class="question-stem">${html(item.prompt)}</p>
-      <input class="gate-input" value="${html(state.text)}" ${state.submitted?'disabled':''} placeholder="Type your answer"/>
-      <button class="action-btn">Check answer</button>
-      ${renderFeedbackAndRationale(item, state, state.submitted ? (state.wasCorrect ? 'correct':'incorrect') : 'neutral')}
-      ${interactiveContinueHtml(state)}
-    </div>
-  `);
-  const btn = block.querySelector('.action-btn');
-  if (!state.submitted) btn.addEventListener('click', () => {
-    const val = block.querySelector('input').value.trim();
-    if (!val) return;
-    const norm = x => caseInsensitive ? String(x).trim().toLowerCase() : String(x).trim();
-    if (!state.submitted && isQuestionCardType(item.type)) totalQuestions++;
-    state.text = val;
-    state.submitted = true;
-    state.wasCorrect = item.answers.map(norm).includes(norm(val));
-    if (state.wasCorrect) correctFirst++;
-    persistProgress();
-    replaceCard(block, renderFillBlankCard(item, sectionIndex, onComplete));
-  }); else btn.remove();
-  bindInteractiveContinue(block, state, onComplete, item.slot, sectionIndex);
-  return block;
-}
-
-function isCoarsePointerDevice() {
-  return !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
-}
-
-function assignSelectedItemToCategory(cardState, selectedItem, categoryName) {
-  if (!cardState || !selectedItem) return;
-
-  if (!categoryName) {
-    delete cardState.placements[selectedItem];
-  } else {
-    cardState.placements[selectedItem] = categoryName;
-  }
-
-  cardState.selectedItem = '';
-  persistProgress();
-}
-
-function renderCategorizeCard(item, sectionIndex, onComplete) {
-  const pairs = (item.categoryMappings || []).flatMap(m => {
-    if (m && typeof m.item === 'string' && typeof m.category === 'string') {
-      return [{ item: m.item, category: m.category }];
-    }
-    if (m && typeof m.category === 'string' && Array.isArray(m.items)) {
-      return m.items
-        .map(i => String(i || '').trim())
-        .filter(Boolean)
-        .map(i => ({ item: i, category: m.category }));
-    }
-    return [];
-  });
-
-  if (!item.prompt || pairs.length === 0) {
-    return renderIncompleteCard(item, sectionIndex, onComplete, 'Categorize card data is malformed.');
-  }
-
-  const state = ensureCardState(sectionIndex, {
-    submitted: false,
-    placements: {},
-    selectedItem: '',
-    wasCorrect: false,
-    completed: false
-  });
-
-  if (typeof state.selectedItem !== 'string') state.selectedItem = '';
-
-  const categories = [...new Set(pairs.map(p => p.category))];
-  const allItems = [...new Set(pairs.map(p => p.item))];
-
-  const expected = {};
-  pairs.forEach(p => {
-    expected[p.item] = p.category;
-  });
-
-  const isCoarsePointer = isCoarsePointerDevice();
-
-  const block = document.createElement('div');
-  block.className = 'section-block';
-
-  const itemPool = allItems.filter(opt => !state.placements[opt]);
-
-  const poolHtml = itemPool.map(opt => {
-    const isSelected = !state.submitted && state.selectedItem === opt;
-    return `<div class="drag-item ${isSelected ? 'selected' : ''}" draggable="${state.submitted || isCoarsePointer ? 'false' : 'true'}" data-item="${html(opt)}">${html(opt)}</div>`;
-  }).join('');
-
-  const zonesHtml = categories.map(cat => {
-    const items = Object.entries(state.placements)
-      .filter(([, c]) => c === cat)
-      .map(([i]) => {
-        const isSelected = !state.submitted && state.selectedItem === i;
-        const classes = `drag-item placed ${isSelected ? 'selected' : ''}`.trim();
-        return `<div class="${classes}" data-item="${html(i)}" draggable="${state.submitted || isCoarsePointer ? 'false' : 'true'}">${html(i)}</div>`;
-      }).join('');
-
-    return `<div class="drop-zone" data-category="${html(cat)}"><div class="drop-zone-title">${html(cat)}</div>${items}</div>`;
-  }).join('');
-
-  const hasPlacements = Object.keys(state.placements).length > 0;
-  const helperHtml = isCoarsePointer && !state.submitted
-    ? `<div class="categorize-mobile-helper">Tap an item, then tap a category.</div>`
-    : '';
-
-  block.innerHTML = baseCardShell(sectionIndex, 'Knowledge Check', `
-    <div class="interactive-card">
-      <h2 class="content-header">${html(item.header)}</h2><div class="content-body">${html(item.body)}</div>
-      <p class="question-stem">${html(item.prompt)}</p>
-      <div class="categorize-toolbar">
-        ${helperHtml}
-        <button class="categorize-reset-btn" ${state.submitted || !hasPlacements ? 'disabled' : ''}>Reset</button>
+      <div style="margin-top:10px;">
+        ${options.map(answer => `
+          <button type="button" class="action-btn practice-answer-btn" data-answer="${html(answer)}" ${state.submitted ? 'disabled' : ''}>
+            <span class="practice-answer-text">${html(answer)}</span>
+          </button>
+        `).join('')}
       </div>
-      <div class="categorize-layout">
-        <div class="drag-pool" data-category="">${poolHtml}</div>
-        <div class="drop-zones">${zonesHtml}</div>
+      <div class="practice-feedback" style="margin-top:8px;">
+        ${state.submitted ? `${buildPracticeStyledResultHtml(state.wasCorrect, `Correct answer: ${html(correct)}`)}${buildPracticeRationaleHtml(question.rationale)}` : ''}
       </div>
-      <button class="action-btn">Check answer</button>
-      ${renderFeedbackAndRationale(item, state, state.submitted ? (state.wasCorrect ? 'correct' : 'incorrect') : 'neutral')}
-      ${interactiveContinueHtml(state)}
-    </div>
-  `);
+    `);
 
-  const assignFromElement = (el, category) => {
-    const itemName = el?.dataset?.item || '';
-    if (!itemName || state.submitted) return;
-    assignSelectedItemToCategory(state, itemName, category);
-    replaceCard(block, renderCategorizeCard(item, sectionIndex, onComplete));
-  };
-
-  const draggableItems = [...block.querySelectorAll('.drag-item')];
-  const dropZones = [...block.querySelectorAll('.drag-pool, .drop-zone')];
-
-  draggableItems.forEach(el => {
-    el.addEventListener('dragstart', e => {
-      if (state.submitted || isCoarsePointer) return;
-      e.dataTransfer.setData('text/plain', el.dataset.item || '');
+    initializePracticeStemToggle(block);
+    const buttons = block.querySelectorAll('.practice-answer-btn');
+    buttons.forEach(button => {
+      const answer = button.getAttribute('data-answer') || '';
+      if (!state.submitted && state.selected && state.selected === answer) {
+        button.style.border = '2px solid #2f6edc';
+        button.style.background = '#e7f0ff';
+        button.style.color = '#10213d';
+      }
+      if (state.submitted) {
+        if (answer === correct) {
+          button.style.border = '2px solid #166534';
+          button.style.background = '#166534';
+          button.style.color = '#ffffff';
+        } else if (answer === state.selected && !state.wasCorrect) {
+          button.style.border = '2px solid #991b1b';
+          button.style.background = '#991b1b';
+          button.style.color = '#ffffff';
+        }
+      }
+      if (!state.submitted) {
+        button.addEventListener('click', () => {
+          state.selected = answer;
+          markModuleQuestionSubmitted(state, answer === correct);
+          replaceCard(block, renderModuleQuestionCard(item, sectionIndex, onComplete));
+        });
+      }
     });
+    return block;
+  }
 
-    if (isCoarsePointer && !state.submitted) {
-      el.addEventListener('click', () => {
-        state.selectedItem = (state.selectedItem === el.dataset.item) ? '' : (el.dataset.item || '');
+  if (type === 'fitb') {
+    const acceptedAnswers = parseAcceptedFitbAnswers(question.correct_blob || '');
+    const displayedCorrect = getDisplayedFitbAnswer(acceptedAnswers);
+    if (!acceptedAnswers.length) return renderIncompleteCard(item, sectionIndex, onComplete, 'FITB card is missing answer data.');
+    const isCorrect = state.submitted ? isFitbAnswerCorrect(state.text, acceptedAnswers) : false;
+    renderFrame(`
+      <div id="practice-stem" class="practice-stem">${question.stem}</div>
+      <button id="practice-stem-toggle" class="practice-stem-toggle" style="display:none;" type="button">Expand case</button>
+      <div style="margin-top:10px;">
+        <input type="text" class="gate-input module-fitb-input" value="${html(state.text || '')}" placeholder="Type your answer" ${state.submitted ? 'disabled' : ''} />
+      </div>
+      ${!state.submitted ? '<div style="margin-top:10px;"><button type="button" class="action-btn module-fitb-submit">Check Answer</button></div>' : ''}
+      <div class="practice-feedback" style="margin-top:8px;">
+        ${state.submitted ? `${buildPracticeStyledResultHtml(isCorrect, `Correct answer: ${html(displayedCorrect)}`)}${buildPracticeRationaleHtml(question.rationale)}` : ''}
+      </div>
+    `);
+    initializePracticeStemToggle(block);
+    if (!state.submitted) {
+      const input = block.querySelector('.module-fitb-input');
+      const submitBtn = block.querySelector('.module-fitb-submit');
+      const submit = () => {
+        const val = String(input?.value || '').trim();
+        if (!val) return;
+        state.text = val;
+        markModuleQuestionSubmitted(state, isFitbAnswerCorrect(val, acceptedAnswers));
+        replaceCard(block, renderModuleQuestionCard(item, sectionIndex, onComplete));
+      };
+      submitBtn?.addEventListener('click', submit);
+      input?.addEventListener('keydown', e => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          submit();
+        }
+      });
+    }
+    return block;
+  }
+
+  if (type === 'sata') {
+    const correctAnswers = splitBlob(question.correct_blob);
+    const options = shuffleArray([...new Set(splitBlob(question.distractors_blob))]);
+    if (!correctAnswers.length || !options.length) return renderIncompleteCard(item, sectionIndex, onComplete, 'SATA card is missing option/answer data.');
+    const correctNorm = correctAnswers.map(normalizeGradedText).sort();
+    renderFrame(`
+      <div id="practice-stem" class="practice-stem">${question.stem}</div>
+      <button id="practice-stem-toggle" class="practice-stem-toggle" style="display:none;" type="button">Expand case</button>
+      <div style="margin-top:10px; margin-bottom:12px; font-size:0.86rem; color:#5f718f;">Select all that apply.</div>
+      <div class="practice-sata-options">
+        ${options.map(answer => `
+          <button type="button" class="practice-sata-btn ${(state.selectedAnswers || []).includes(answer) ? 'selected' : ''}" data-answer="${html(answer)}" ${state.submitted ? 'disabled' : ''}>
+            <span class="practice-answer-text">${html(answer)}</span>
+            <span class="sata-check">✓</span>
+          </button>
+        `).join('')}
+      </div>
+      ${!state.submitted ? '<div style="margin-top:10px;"><button type="button" class="action-btn module-sata-submit">Check Answer</button></div>' : ''}
+      <div class="practice-feedback" style="margin-top:8px;">
+        ${state.submitted ? `${buildPracticeStyledResultHtml(state.wasCorrect, `Correct answer(s): ${html(correctAnswers.join(', '))}`)}${buildPracticeRationaleHtml(question.rationale)}` : ''}
+      </div>
+    `);
+    initializePracticeStemToggle(block);
+    const optionButtons = block.querySelectorAll('.practice-sata-btn');
+    optionButtons.forEach(button => {
+      const answer = button.getAttribute('data-answer') || '';
+      if (!state.submitted) {
+        button.addEventListener('click', () => {
+          button.classList.toggle('selected');
+          state.selectedAnswers = [...block.querySelectorAll('.practice-sata-btn.selected')].map(btn => btn.getAttribute('data-answer') || '');
+          persistProgress();
+        });
+      } else {
+        const norm = normalizeGradedText(answer);
+        const selected = (state.selectedAnswers || []).includes(answer);
+        if (correctNorm.includes(norm)) {
+          button.classList.add('correct-choice');
+        } else if (selected) {
+          button.classList.add('wrong-choice');
+        }
+      }
+    });
+    if (!state.submitted) {
+      block.querySelector('.module-sata-submit')?.addEventListener('click', () => {
+        const selected = [...block.querySelectorAll('.practice-sata-btn.selected')].map(btn => btn.getAttribute('data-answer') || '');
+        const selectedNorm = selected.map(normalizeGradedText).sort();
+        const isCorrect = selectedNorm.length === correctNorm.length && selectedNorm.every((v, idx) => v === correctNorm[idx]);
+        state.selectedAnswers = selected;
+        markModuleQuestionSubmitted(state, isCorrect);
+        replaceCard(block, renderModuleQuestionCard(item, sectionIndex, onComplete));
+      });
+    }
+    return block;
+  }
+
+  if (type === 'categorize') {
+    const mappings = parseCategoryMappings(question.correct_blob);
+    if (!mappings.length) return renderIncompleteCard(item, sectionIndex, onComplete, 'Categorize card is missing answer mappings.');
+    const categories = [...new Set(mappings.map(m => m.category))];
+    const items = shuffleArray([...new Set(mappings.map(m => m.item))]);
+    const isMobileMode = window.matchMedia('(max-width: 700px)').matches;
+    const placements = Array.isArray(state.placements) ? state.placements : [];
+    const placedMap = new Map(placements.map(p => [p.item, p.placedIn]));
+    const answerMap = new Map(mappings.map(p => [normalizeGradedText(p.item), normalizeGradedText(p.category)]));
+
+    renderFrame(`
+      <div id="practice-stem" class="practice-stem">${question.stem}</div>
+      <button id="practice-stem-toggle" class="practice-stem-toggle" style="display:none;" type="button">Expand case</button>
+      <div class="practice-categorize-helper">
+        ${isMobileMode ? 'Tap an item to select it, then tap a category area to place it.' : 'Drag each item into the correct category.'}
+      </div>
+      <div class="practice-categorize-layout">
+        <div class="practice-categorize-pool practice-categorize-dropzone" data-category="pool">
+          <div class="practice-categorize-pool-title">Items to place</div>
+          ${isMobileMode ? `<div class="practice-categorize-mobile-hint">${state.mobileSelectedItem ? `Selected: ${html(state.mobileSelectedItem)}` : 'No item selected.'}</div>` : ''}
+          <div class="practice-categorize-items">
+            ${items.filter(itemName => !placedMap.has(itemName)).map(itemName => `<div class="practice-categorize-item ${state.mobileSelectedItem === itemName ? 'selected' : ''}" draggable="${state.submitted ? 'false' : 'true'}" data-item="${html(itemName)}">${html(itemName)}</div>`).join('')}
+          </div>
+        </div>
+        <div>
+          ${categories.map(category => `
+            <div class="practice-categorize-zone practice-categorize-dropzone" data-category="${html(category)}" style="margin-bottom:12px;">
+              <div class="practice-categorize-zone-title">${html(category)}</div>
+              ${(placements || []).filter(p => p.placedIn === category).map(p => `<div class="practice-categorize-item ${state.mobileSelectedItem === p.item ? 'selected' : ''}" draggable="${state.submitted ? 'false' : 'true'}" data-item="${html(p.item)}">${html(p.item)}</div>`).join('')}
+            </div>
+          `).join('')}
+        </div>
+      </div>
+      ${!state.submitted ? '<div class="practice-categorize-controls"><button type="button" class="action-btn secondary module-categorize-reset">Reset placements</button><button type="button" class="action-btn module-categorize-submit">Check Answer</button></div>' : ''}
+      <div class="practice-feedback" style="margin-top:8px;">
+        ${state.submitted ? `${buildPracticeStyledResultHtml(state.wasCorrect, `Correct placement:<br><br>${mappings.map(m => `${html(m.item)} → ${html(m.category)}`).join('<br>')}`)}${buildPracticeRationaleHtml(question.rationale)}` : ''}
+      </div>
+    `);
+    initializePracticeStemToggle(block);
+
+    const getPlacementSnapshot = () => [...block.querySelectorAll('.practice-categorize-item')].map(node => ({
+      item: node.getAttribute('data-item') || '',
+      placedIn: node.parentElement?.getAttribute('data-category') || 'pool'
+    })).filter(p => p.item && p.placedIn !== 'pool');
+
+    let dragged = null;
+    const itemEls = block.querySelectorAll('.practice-categorize-item');
+    const zones = block.querySelectorAll('.practice-categorize-dropzone');
+    itemEls.forEach(node => {
+      node.addEventListener('dragstart', () => { if (!state.submitted) dragged = node; });
+      if (!state.submitted && isMobileMode) {
+        node.addEventListener('click', () => {
+          state.mobileSelectedItem = state.mobileSelectedItem === (node.dataset.item || '') ? '' : (node.dataset.item || '');
+          persistProgress();
+          replaceCard(block, renderModuleQuestionCard(item, sectionIndex, onComplete));
+        });
+      }
+    });
+    zones.forEach(zone => {
+      zone.addEventListener('dragover', e => { if (!state.submitted) e.preventDefault(); });
+      zone.addEventListener('drop', e => {
+        if (state.submitted || !dragged) return;
+        e.preventDefault();
+        const targetItems = zone.querySelector('.practice-categorize-items');
+        if (targetItems) targetItems.appendChild(dragged);
+        else zone.appendChild(dragged);
+        state.placements = getPlacementSnapshot();
+        state.mobileSelectedItem = '';
         persistProgress();
-        replaceCard(block, renderCategorizeCard(item, sectionIndex, onComplete));
+      });
+      if (!state.submitted && isMobileMode) {
+        zone.addEventListener('click', () => {
+          const selectedItem = state.mobileSelectedItem;
+          if (!selectedItem) return;
+          const moved = (state.placements || []).filter(p => p.item !== selectedItem);
+          const category = zone.getAttribute('data-category') || 'pool';
+          if (category !== 'pool') moved.push({ item: selectedItem, placedIn: category });
+          state.placements = moved;
+          state.mobileSelectedItem = '';
+          persistProgress();
+          replaceCard(block, renderModuleQuestionCard(item, sectionIndex, onComplete));
+        });
+      }
+    });
+    if (!state.submitted) {
+      block.querySelector('.module-categorize-reset')?.addEventListener('click', () => {
+        state.placements = [];
+        state.mobileSelectedItem = '';
+        persistProgress();
+        replaceCard(block, renderModuleQuestionCard(item, sectionIndex, onComplete));
+      });
+      block.querySelector('.module-categorize-submit')?.addEventListener('click', () => {
+        state.placements = getPlacementSnapshot();
+        const allPlaced = state.placements.length === items.length;
+        if (!allPlaced) return;
+        const isCorrect = state.placements.every(p => answerMap.get(normalizeGradedText(p.item)) === normalizeGradedText(p.placedIn));
+        markModuleQuestionSubmitted(state, isCorrect);
+        replaceCard(block, renderModuleQuestionCard(item, sectionIndex, onComplete));
+      });
+    } else {
+      block.querySelectorAll('.practice-categorize-item').forEach(node => {
+        const itemName = node.getAttribute('data-item') || '';
+        const placedIn = node.parentElement?.getAttribute('data-category') || 'pool';
+        const expected = answerMap.get(normalizeGradedText(itemName)) || '';
+        if (normalizeGradedText(placedIn) === expected) {
+          node.classList.add('correct');
+        } else {
+          node.classList.add('incorrect');
+        }
       });
     }
-  });
-
-  dropZones.forEach(zone => {
-    zone.addEventListener('dragover', e => {
-      if (state.submitted || isCoarsePointer) return;
-      e.preventDefault();
-    });
-
-    zone.addEventListener('drop', e => {
-      if (state.submitted || isCoarsePointer) return;
-      e.preventDefault();
-      const itemName = e.dataTransfer.getData('text/plain');
-      if (!itemName) return;
-      assignSelectedItemToCategory(state, itemName, zone.dataset.category || '');
-      replaceCard(block, renderCategorizeCard(item, sectionIndex, onComplete));
-    });
-
-    if (isCoarsePointer && !state.submitted) {
-      zone.addEventListener('click', () => {
-        if (!state.selectedItem) return;
-        assignSelectedItemToCategory(state, state.selectedItem, zone.dataset.category || '');
-        replaceCard(block, renderCategorizeCard(item, sectionIndex, onComplete));
-      });
-    }
-  });
-
-  const resetBtn = block.querySelector('.categorize-reset-btn');
-  if (resetBtn && !state.submitted) {
-    resetBtn.addEventListener('click', () => {
-      state.placements = {};
-      state.selectedItem = '';
-      persistProgress();
-      replaceCard(block, renderCategorizeCard(item, sectionIndex, onComplete));
-    });
+    return block;
   }
 
-  const btn = block.querySelector('.action-btn');
-  if (!state.submitted) {
-    btn.addEventListener('click', () => {
-      if (Object.keys(state.placements).length !== allItems.length) return;
-      if (!state.submitted && isQuestionCardType(item.type)) totalQuestions++;
-
-      state.submitted = true;
-      state.wasCorrect = allItems.every(i => state.placements[i] === expected[i]);
-      if (state.wasCorrect) correctFirst++;
-      interactionTimes.push(Date.now());
-      persistProgress();
-      replaceCard(block, renderCategorizeCard(item, sectionIndex, onComplete));
-    });
-  } else {
-    btn.remove();
-  }
-
-  bindInteractiveContinue(block, state, onComplete, item.slot, sectionIndex);
-  return block;
+  return renderIncompleteCard(item, sectionIndex, onComplete, `Unsupported question type: ${type || 'unknown'}`);
 }
 
 function renderReflectionCard(item, sectionIndex, onComplete) {
@@ -5598,28 +5316,7 @@ function renderCardByType(item, sectionIndex, onComplete) {
   if (type === 'text') return renderTextBlock(item, sectionIndex, onComplete);
   if (type === 'text_image') return renderTextImageBlock(item, sectionIndex, onComplete);
 
-  if (type === 'sba') {
-    return renderQuestionCard(item, sectionIndex, onComplete, false);
-  }
-
-  if (type === 'sba_image') {
-    if (!item.mediaUrl) {
-      return renderIncompleteCard(item, sectionIndex, onComplete, 'Question image card is missing media_url.');
-    }
-    return renderQuestionCard(item, sectionIndex, onComplete, true);
-  }
-
-  if (type === 'sata') {
-    return renderSelectAllCard(item, sectionIndex, onComplete);
-  }
-
-  if (type === 'fitb') {
-    return renderFillBlankCard(item, sectionIndex, onComplete);
-  }
-
-  if (type === 'categorize') {
-    return renderCategorizeCard(item, sectionIndex, onComplete);
-  }
+  if (isQuestionCardType(type)) return renderModuleQuestionCard(item, sectionIndex, onComplete);
 
   if (type === 'reflection') return renderReflectionCard(item, sectionIndex, onComplete);
   if (type === 'poll') return renderPollCard(item, sectionIndex, onComplete);
@@ -6136,14 +5833,6 @@ function initializeGoogleSignIn() {
   return true;
 }
 
-function resetGoogleAutoSelectDebug() {
-  try {
-    google.accounts.id.disableAutoSelect();
-    console.log("Google auto-select disabled for debugging.");
-  } catch (err) {
-    console.warn("disableAutoSelect failed:", err);
-  }
-}
 
 function showScreen(name) {
   $('auth-screen').style.display = name === 'auth' ? 'flex' : 'none';
@@ -6153,52 +5842,15 @@ function showScreen(name) {
   $('app').classList.toggle('auth-mode', name === 'auth');
 }
 
-function normalizeDashboardStats(rawStats) {
-  const stats = rawStats || {};
-  const dailyGoal = 20;
-  return {
-    ...stats,
-    total_modules_completed: Number(stats.total_modules_completed ?? 0),
-    total_questions_answered: Number(stats.total_questions_answered ?? 0),
-    daily_goal: dailyGoal,
-    questions_today: Number(stats.questions_today ?? 0),
-    streak_days: Number(stats.streak_days ?? 0),
-    streak_secured_today: Boolean(stats.streak_secured_today),
-    top_modules: Array.isArray(stats.top_modules) ? stats.top_modules : []
-  };
-}
-
-function renderDashboardSummary(stats) {
-  const safeStats = normalizeDashboardStats(stats);
-  dashboardStats = safeStats;
-
-  const streakSummary = $('streak-goal-summary');
-  if (!streakSummary) return;
-
-  const dailyGoal = 20;
-  const questionsToday = Math.max(0, safeStats.questions_today);
-  const remainingQuestions = Math.max(0, dailyGoal - questionsToday);
-  const progressPercent = Math.max(0, Math.min(100, (questionsToday / dailyGoal) * 100));
-  streakSummary.innerHTML = `
-    <p class="streak-line">${safeStats.streak_days}-day streak</p>
-    <div class="goal-progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="${dailyGoal}" aria-valuenow="${Math.min(questionsToday, dailyGoal)}" aria-label="Daily goal progress">
-      <div class="goal-progress-fill ${remainingQuestions === 0 ? 'goal-complete' : ''}" style="width:${progressPercent}%;"></div>
-    </div>
-    <p class="goal-inline-status">${questionsToday} / ${dailyGoal} questions</p>
-  `;
-}
 
 function renderDashboard(payload) {
   const user = payload.user || {};
-  const stats = normalizeDashboardStats(payload.stats);
   $('dashboard-error').textContent = '';
 
-  practiceCourses = Array.isArray(payload.practice_courses) ? payload.practice_courses : [];
   practiceModules = Array.isArray(payload.practice_modules) ? payload.practice_modules : [];
   assignmentEntryEnabled = payload.assignment_entry_enabled !== false;
   currentUserName = user.name || currentUserName;
   currentUserEmail = normalizeIdentityValue(user.email || currentUserEmail);
-  renderDashboardSummary(stats);
 
   $('assignment-card').style.display = assignmentEntryEnabled ? 'block' : 'none';
   $('assignment-key-input').value = '';
