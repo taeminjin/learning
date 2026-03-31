@@ -3695,23 +3695,24 @@ function renderSATAQuestion(q, index, total) {
   const stateKey = getPracticeQuestionStateKey(q);
 
   const correctAnswers = String(q.correct_blob || "")
-    .split("|")
-    .map(s => s.trim())
-    .filter(Boolean);
+  .split("|")
+  .map(s => s.trim())
+  .filter(Boolean);
 
-  const options = String(q.distractors_blob || "")
-    .split("|")
-    .map(s => s.trim())
-    .filter(Boolean);
+const distractors = String(q.distractors_blob || "")
+  .split("|")
+  .map(s => s.trim())
+  .filter(Boolean);
 
-  const uniqueOptions = [...new Set(options)];
+const allOptions = [...correctAnswers, ...distractors];
+const uniqueOptions = [...new Set(allOptions)];
 
-  const shuffledOptions = uniqueOptions.slice();
-  for (let i = shuffledOptions.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [shuffledOptions[i], shuffledOptions[j]] = [shuffledOptions[j], shuffledOptions[i]];
-  }
-
+const shuffledOptions = uniqueOptions.slice();
+for (let i = shuffledOptions.length - 1; i > 0; i--) {
+  const j = Math.floor(Math.random() * (i + 1));
+  [shuffledOptions[i], shuffledOptions[j]] = [shuffledOptions[j], shuffledOptions[i]];
+}
+ 
   container.innerHTML = `
     <div class="practice-question-card">
 
@@ -5074,8 +5075,11 @@ function renderModuleQuestionCard(item, sectionIndex, onComplete) {
 
   if (type === 'sata') {
     const correctAnswers = splitBlob(question.correct_blob);
-    const options = shuffleArray([...new Set(splitBlob(question.distractors_blob))]);
-    if (!correctAnswers.length || !options.length) return renderIncompleteCard(item, sectionIndex, onComplete, 'SATA card is missing option/answer data.');
+    const distractors = splitBlob(question.distractors_blob);
+    const options = shuffleArray([...new Set([...correctAnswers, ...distractors])]);
+    if (!correctAnswers.length || !options.length) {
+  return renderIncompleteCard(item, sectionIndex, onComplete, 'SATA card is missing option/answer data.');
+}
     const correctNorm = correctAnswers.map(normalizeGradedText).sort();
     renderFrame(`
       <div id="practice-stem" class="practice-stem">${question.stem}</div>
