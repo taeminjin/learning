@@ -5302,6 +5302,7 @@ function renderPollCard(item, sectionIndex, onComplete) {
       state.selected = selected.value;
     }
     state.submitted = true;
+    logEvent('poll_response', { slot: item.slot, sectionIndex: sectionIndex, header: item.header, selected: state.selected });
     persistProgress();
     replaceCard(block, renderPollCard(item, sectionIndex, onComplete));
   }); else btn.remove();
