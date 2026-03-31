@@ -1882,6 +1882,18 @@ function shuffleArray(arr) {
   }
   return a;
 }
+ function getStableOptionOrder(savedOrder, allOptions) {
+  const deduped = [...new Set((allOptions || []).filter(Boolean))];
+
+  if (!Array.isArray(savedOrder) || !savedOrder.length) {
+    return shuffleArray(deduped);
+  }
+
+  const kept = savedOrder.filter(opt => deduped.includes(opt));
+  const missing = deduped.filter(opt => !kept.includes(opt));
+
+  return kept.concat(missing);
+}
 
 function splitBlob(value) {
   return String(value || '')
