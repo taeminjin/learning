@@ -67,15 +67,23 @@
     #progress-bar {
       position: fixed;
       top: 0; left: 0; right: 0;
-      height: 3px;
-      background: var(--cream-dark);
+      height: 4px;
+      background: rgba(200, 216, 240, 0.45);
       z-index: 200;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(-2px);
+      transition: opacity 0.25s ease, transform 0.25s ease;
+    }
+    body.training-mode #progress-bar {
+      opacity: 1;
+      transform: translateY(0);
     }
     #progress-fill {
       height: 100%;
-      background: var(--gold);
+      background: linear-gradient(90deg, var(--gold), var(--gold-lt));
       width: 0%;
-      transition: width 0.5s ease;
+      transition: width 0.45s ease;
     }
 
     /* ── SECTION COUNTER ── */
@@ -457,8 +465,9 @@
     .practice-sata-btn {
       width: 100%;
       display: flex;
-      justify-content: space-between;
-      align-items: center;
+      justify-content: flex-start;
+      align-items: flex-start;
+      gap: 10px;
 
       margin-bottom: 6px;
       padding: 9px 12px;
@@ -505,15 +514,17 @@
       color: #ffffff;
     }
 
-    .sata-check {
-      opacity: 0;
-      font-weight: 700;
-      margin-left: 12px;
+    .practice-sata-btn.missed-correct {
+      background: #dcfce7;
+      border-color: #166534;
+      border-style: dashed;
+      color: #14532d;
     }
 
     .practice-sata-btn.selected .sata-check,
     .practice-sata-btn.correct-choice .sata-check,
-    .practice-sata-btn.wrong-choice .sata-check {
+    .practice-sata-btn.wrong-choice .sata-check,
+    .practice-sata-btn.missed-correct .sata-check {
       opacity: 1;
     }
 
@@ -532,10 +543,17 @@
     .practice-categorize-layout {
       display: grid;
       gap: 12px;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: minmax(220px, 0.9fr) minmax(320px, 1.5fr);
     }
 
-    .practice-categorize-pool,
+    .practice-categorize-pool {
+      border: 1px solid #e3e8f0;
+      border-radius: 12px;
+      background: #f8fafc;
+      padding: 12px;
+      min-height: 88px;
+    }
+
     .practice-categorize-zone {
       border: 1px solid #e3e8f0;
       border-radius: 12px;
@@ -778,7 +796,7 @@
 
     /* ── MODULE HEADER ── */
     .module-header {
-      padding: 36px 0 28px;
+      padding: 24px 0 16px;
       border-bottom: 1px solid var(--rule);
       margin-bottom: 0;
     }
@@ -849,12 +867,18 @@
 
     /* ── SECTION BLOCK ── */
     .section-block {
-      margin-top: 32px;
+      margin-top: 18px;
       display: none;
       opacity: 0;
       transform: translateY(20px);
       transition: opacity 0.5s ease, transform 0.5s ease;
       pointer-events: none;
+    }
+
+    .section-content > .section-block + .section-block {
+      border-top: 1px solid var(--rule);
+      padding-top: 24px;
+      margin-top: 24px;
     }
 
     .section-block.revealed {
@@ -1045,16 +1069,6 @@
       cursor: default;
     }
 
-    .practice-sata-btn {
-      display: flex;
-      justify-content: flex-start;
-      align-items: flex-start;
-      gap: 10px;
-      background: #f7faff;
-      color: #10213d;
-      border: 1px solid #c6d5ea;
-    }
-
     .practice-sata-btn:hover:not(:disabled) {
       background: #eef5ff;
       color: #10213d;
@@ -1076,18 +1090,8 @@
       flex: 0 0 auto;
       align-self: center;
       margin-left: 0;
-    }
-
-    .practice-sata-btn.selected {
-      background: #e7f0ff;
-      border-color: #2f6edc;
-      color: #10213d;
-    }
-
-    .practice-stem {
-      font-size: 0.96rem;
-      line-height: 1.45;
-      padding: 10px 12px;
+      opacity: 0;
+      font-weight: 700;
     }
 
     .action-btn svg { flex: 0 0 14px; }
@@ -1103,14 +1107,29 @@
       color: var(--cream);
     }
 
+    .continue-row .action-btn {
+      background: transparent;
+      border: 1px solid var(--navy);
+      color: var(--navy);
+      font-size: 0.9rem;
+    }
+
+    .continue-row .action-btn:hover {
+      background: var(--navy);
+      color: var(--cream);
+    }
+
     /* ── CONTINUE ROW ── */
     .continue-row {
-      margin-top: 20px;
+      margin-top: 10px;
       display: none;
       justify-content: flex-end;
     }
 
-    .continue-row.show { display: flex; }
+    .continue-row.show {
+      display: flex;
+      justify-content: flex-end;
+    }
 
     /* ── COMPLETION SCREEN ── */
     #completion {
@@ -1190,13 +1209,13 @@
       background: var(--white);
       border: 1px solid var(--rule);
       border-radius: var(--radius);
-      padding: 28px 30px;
+      padding: 20px 22px;
       box-shadow: var(--shadow);
     }
 
     .content-header {
       font-family: var(--serif);
-      font-size: clamp(1.1rem, 3vw, 1.4rem);
+      font-size: clamp(1.25rem, 3vw, 1.55rem);
       font-weight: 700;
       color: var(--navy);
       line-height: 1.3;
@@ -1204,9 +1223,24 @@
     }
 
     .content-body {
-      font-size: 0.84rem;
+      font-size: 1rem;
       color: var(--navy);
       line-height: 1.75;
+    }
+
+    .content-body ul {
+      margin: 10px 0 0 0;
+      padding-left: 1.2rem;
+      list-style-position: outside;
+    }
+
+    .content-body li {
+      margin: 0.3rem 0;
+      line-height: 1.5;
+    }
+
+    .content-body p + ul {
+      margin-top: 0.5rem;
     }
 
     /* ── TEXT + IMAGE BLOCK ── */
@@ -1406,6 +1440,7 @@
 
     @media (max-width: 600px) {
       html { font-size: 16px; }
+      #progress-bar { display: none; }
 
       #app { padding: 0 16px 72px; }
 
@@ -1427,16 +1462,46 @@
         top: auto;
         bottom: 12px;
         right: 12px;
-        font-size: 0.68rem;
-        padding: 6px 10px;
+        font-size: 0.64rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        padding: 0;
+        width: 58px;
+        height: 58px;
         opacity: 0.88;
-        backdrop-filter: blur(4px);
-        box-shadow: 0 4px 10px rgba(16,33,61,0.08);
+        border: none;
+        border-radius: 999px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--navy);
+        background:
+          conic-gradient(var(--gold) var(--mobile-progress-angle, 0deg), rgba(200, 216, 240, 0.65) 0);
+        box-shadow: 0 5px 16px rgba(16,33,61,0.12);
+      }
+      #section-counter::before {
+        content: '';
+        position: absolute;
+        inset: 4px;
+        border-radius: 50%;
+        background: rgba(237, 244, 255, 0.96);
+        box-shadow: inset 0 0 0 1px rgba(200, 216, 240, 0.9);
+      }
+      #section-counter span {
+        position: relative;
+        z-index: 1;
+        line-height: 1;
       }
 
       .video-wrapper {
         border-radius: 8px;
         overflow: hidden;
+      }
+    }
+
+    @media (min-width: 601px) {
+      #section-counter {
+        background: rgba(237, 244, 255, 0.94);
       }
     }
 
@@ -1600,11 +1665,6 @@
       }
     }
 
-    .action-btn.disabled {
-      background-color: #dbe9ff !important;
-      border-color: #c8d8f0 !important;
-      color: #5f718f !important;
-    }
   </style>
 </head>
 <body>
@@ -1716,7 +1776,7 @@
       <p class="completion-sub">You have finished the module. Please submit your session data below to complete the process.</p>
       <div class="completion-stats">
         <div class="stat-item"><strong id="stat-questions">—</strong>Questions answered</div>
-        <div class="stat-item"><strong id="stat-correct">—</strong>Correct on first try</div>
+        <div class="stat-item"><strong id="stat-correct">—</strong>Correct answers</div>
         <div class="stat-item"><strong id="stat-time">—</strong>Time elapsed</div>
       </div>
       <div class="completion-actions">
@@ -1788,7 +1848,7 @@
   }
 */
 const LOAD_URL = 'https://script.google.com/macros/s/AKfycbyxevT1EWOj_IgdmL2oFiubBWc3b1BC5BnUuCL5-w0PxLjVPE9xsO_m_3RoIgqZ9mvO_A/exec';
-const SUBMIT_URL = 'https://script.google.com/macros/s/AKfycbyxevT1EWOj_IgdmL2oFiubBWc3b1BC5BnUuCL5-w0PxLjVPE9xsO_m_3RoIgqZ9mvO_A/exec';
+const SUBMIT_URL = LOAD_URL;
 const PRACTICE_API_URL = 'https://script.google.com/macros/s/AKfycbyGXa8KdMd5kYJrkOew56oljtPPNvKpNxMnMf1IsHp2C0XAeth7fP-MDhzPlkhUvPXlpQ/exec';
 const PRACTICE_SESSION_STORAGE_KEY = 'inProgressPracticeSession';
 const GOOGLE_CLIENT_ID = '534534627380-bd6hjuj4ihbf6i7r2qsjnen6cqhm14ma.apps.googleusercontent.com';
@@ -1846,7 +1906,6 @@ let trainingActive  = false;
 let completionReached = false;
 let hasSuccessfulSubmission = false;
 let quizStates = {};
-let currentSectionIndex = 0;
 let progressionSectionIndex = 0;
 let allSections = [];
 
@@ -1882,7 +1941,7 @@ function shuffleArray(arr) {
   }
   return a;
 }
- function getStableOptionOrder(savedOrder, allOptions) {
+function getStableOptionOrder(savedOrder, allOptions) {
   const deduped = [...new Set((allOptions || []).filter(Boolean))];
 
   if (!Array.isArray(savedOrder) || !savedOrder.length) {
@@ -1937,6 +1996,15 @@ function parseCategoryMappings(blob) {
     })
     .filter(Boolean);
 }
+
+function getCategorizeMappingsAndCategories(blob) {
+  const mappings = parseCategoryMappings(blob);
+  return {
+    mappings,
+    categories: [...new Set(mappings.map(mapping => mapping.category))],
+    items: [...new Set(mappings.map(mapping => mapping.item))]
+  };
+}
 function normalizeBool(value) {
   return ['true', 'yes', '1'].includes(String(value || '').trim().toLowerCase());
 }
@@ -1948,6 +2016,62 @@ function html(v) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
+}
+
+// Lightweight body formatting (safe plain text only):
+// - blank lines => paragraph breaks
+// - lines starting with "-- " => bullet list items
+// - **bold**
+// - *italic*
+function formatBodyText(raw) {
+  const text = String(raw || '').replace(/\r\n?/g, '\n');
+  if (!text.trim()) return '';
+
+  const applyInlineFormatting = (value) => {
+    const escaped = html(value);
+    return escaped
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.+?)\*/g, '<em>$1</em>');
+  };
+
+  const lines = text.split('\n');
+  const blocks = [];
+  let paragraphLines = [];
+  let listItems = [];
+
+  const flushParagraph = () => {
+    if (!paragraphLines.length) return;
+    blocks.push(`<p>${paragraphLines.join('<br>')}</p>`);
+    paragraphLines = [];
+  };
+
+  const flushList = () => {
+    if (!listItems.length) return;
+    blocks.push(`<ul>${listItems.map(item => `<li>${item}</li>`).join('')}</ul>`);
+    listItems = [];
+  };
+
+  lines.forEach(line => {
+    const trimmed = line.trim();
+    if (!trimmed) {
+      flushParagraph();
+      flushList();
+      return;
+    }
+
+    if (trimmed.startsWith('-- ')) {
+      flushParagraph();
+      listItems.push(applyInlineFormatting(trimmed.slice(3)));
+      return;
+    }
+
+    flushList();
+    paragraphLines.push(applyInlineFormatting(trimmed));
+  });
+
+  flushParagraph();
+  flushList();
+  return blocks.join('');
 }
 
 function normalizeYouTubeVideoId(raw) {
@@ -2009,10 +2133,42 @@ function scrollToEl(el, offset = 80) {
 
 function updateProgress() {
   const pct = totalSlots > 0 ? Math.round((completedSlots.size / totalSlots) * 100) : 0;
-  $('progress-fill').style.width = pct + '%';
+  const progressFill = $('progress-fill');
+  if (progressFill) progressFill.style.width = pct + '%';
   const counter = $('section-counter');
-  counter.textContent = `${completedSlots.size} / ${totalSlots}`;
+  counter.innerHTML = `<span>${completedSlots.size} / ${totalSlots}</span>`;
+  counter.style.setProperty('--mobile-progress-angle', `${Math.max(0, Math.min(100, pct)) * 3.6}deg`);
   counter.style.opacity = totalSlots > 0 ? '1' : '0';
+}
+
+function resetTrainingUi() {
+  const sectionCounter = $('section-counter');
+  if (sectionCounter) {
+    sectionCounter.innerHTML = '';
+    sectionCounter.style.removeProperty('--mobile-progress-angle');
+    sectionCounter.style.opacity = '0';
+  }
+
+  const progressFill = $('progress-fill');
+  if (progressFill) progressFill.style.width = '0%';
+
+  const completion = $('completion');
+  if (completion) completion.style.display = 'none';
+
+  const submitStatus = $('submit-status');
+  if (submitStatus) submitStatus.textContent = '';
+
+  const submitBtn = $('btn-submit-final');
+  if (submitBtn) {
+    submitBtn.disabled = false;
+    submitBtn.style.background = '';
+    submitBtn.innerHTML = `
+      Submit session data
+      <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M2 7h10M8 3l4 4-4 4"/>
+      </svg>
+    `;
+  }
 }
 
 
@@ -3449,10 +3605,23 @@ function renderSBAImageQuestion(q, index, total) {
   const container = document.getElementById("practice-question-container");
   if (!container) return;
 
-  const correct = q.correct_blob || "";
-  const distractors = (q.distractors_blob || "").split("|").filter(Boolean);
-  const answers = [correct, ...distractors].sort(() => Math.random() - 0.5);
+  const correct = String(q.correct_blob || "");
+  const distractors = String(q.distractors_blob || "")
+    .split("|")
+    .map(s => s.trim())
+    .filter(Boolean);
+  const allOptions = [correct, ...distractors];
+  const uniqueOptions = [...new Set(allOptions.filter(Boolean))];
   const stateKey = getPracticeQuestionStateKey(q);
+  const previousState = stateKey ? practiceTestState.answerState?.[stateKey] || {} : {};
+  const optionOrder = getStableOptionOrder(previousState.optionOrder, uniqueOptions);
+
+  if (stateKey) {
+    practiceTestState.answerState[stateKey] = {
+      ...previousState,
+      optionOrder
+    };
+  }
 
   const imageHtml = q.media_url
     ? `
@@ -3484,7 +3653,7 @@ function renderSBAImageQuestion(q, index, total) {
       ${imageHtml}
 
       <div style="margin-top:10px;">
-        ${answers.map(answer => `
+        ${optionOrder.map(answer => `
           <button
             type="button"
             class="action-btn practice-answer-btn"
@@ -3539,12 +3708,16 @@ function renderSBAQuestion(q, index, total) {
     ? String(q.distractors_blob).split("|").map(s => s.trim()).filter(Boolean)
     : [];
 
-  const answers = [correct, ...distractors];
+  const allOptions = [correct, ...distractors];
+  const uniqueOptions = [...new Set(allOptions.filter(Boolean))];
   const stateKey = getPracticeQuestionStateKey(q);
-
-  for (let i = answers.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [answers[i], answers[j]] = [answers[j], answers[i]];
+  const previousState = stateKey ? practiceTestState.answerState?.[stateKey] || {} : {};
+  const optionOrder = getStableOptionOrder(previousState.optionOrder, uniqueOptions);
+  if (stateKey) {
+    practiceTestState.answerState[stateKey] = {
+      ...previousState,
+      optionOrder
+    };
   }
 
   container.innerHTML = `
@@ -3562,7 +3735,7 @@ function renderSBAQuestion(q, index, total) {
       </button>
 
       <div style="margin-top:10px;">
-        ${answers.map(answer => `
+        ${optionOrder.map(answer => `
           <button
             type="button"
             class="action-btn practice-answer-btn"
@@ -3718,11 +3891,13 @@ const distractors = String(q.distractors_blob || "")
 
 const allOptions = [...correctAnswers, ...distractors];
 const uniqueOptions = [...new Set(allOptions)];
-
-const shuffledOptions = uniqueOptions.slice();
-for (let i = shuffledOptions.length - 1; i > 0; i--) {
-  const j = Math.floor(Math.random() * (i + 1));
-  [shuffledOptions[i], shuffledOptions[j]] = [shuffledOptions[j], shuffledOptions[i]];
+const previousState = stateKey ? practiceTestState.answerState?.[stateKey] || {} : {};
+const optionOrder = getStableOptionOrder(previousState.optionOrder, uniqueOptions);
+if (stateKey) {
+  practiceTestState.answerState[stateKey] = {
+    ...previousState,
+    optionOrder
+  };
 }
  
   container.innerHTML = `
@@ -3745,7 +3920,7 @@ for (let i = shuffledOptions.length - 1; i > 0; i--) {
       </div>
 
       <div id="practice-sata-options">
-        ${shuffledOptions.map(answer => `
+        ${optionOrder.map(answer => `
           <button
             type="button"
             class="practice-sata-btn"
@@ -3818,14 +3993,7 @@ function renderCategorizeQuestion(q, index, total) {
   const container = document.getElementById("practice-question-container");
   if (!container) return;
 
-  const mappings = parseCategorizeMappings(q.correct_blob);
-  const categories = String(q.distractors_blob || "")
-    .split("|")
-    .map(s => s.trim())
-    .filter(Boolean);
-
-  const uniqueCategories = [...new Set(categories)];
-  const items = mappings.map(m => m.item);
+  const { mappings, categories: uniqueCategories, items } = getCategorizeMappingsAndCategories(q.correct_blob);
 
   const shuffledItems = items.slice();
   for (let i = shuffledItems.length - 1; i > 0; i--) {
@@ -4173,7 +4341,9 @@ function handlePracticeAnswer(question, selected, correct, rationale) {
 
   recordPracticeQuestionResult(question, selected === correct);
   if (stateKey) {
+    const previousState = practiceTestState.answerState?.[stateKey] || {};
     practiceTestState.answerState[stateKey] = {
+      ...previousState,
       type: question.item_type || question.question_type || 'sba',
       selected,
       correct,
@@ -4268,15 +4438,8 @@ function handlePracticeSATAAnswer(question, selectedAnswers, correctAnswers, rat
   const buttons = container.querySelectorAll(".practice-sata-btn");
   const submitBtn = container.querySelector("#practice-sata-submit");
 
-  const normalize = (value) =>
-    String(value || "")
-      .toLowerCase()
-      .replace(/[^\w\s]/g, "")
-      .replace(/\s+/g, " ")
-      .trim();
-
-  const selectedNorm = selectedAnswers.map(normalize).sort();
-  const correctNorm = correctAnswers.map(normalize).sort();
+  const selectedNorm = selectedAnswers.map(normalizeGradedText).sort();
+  const correctNorm = correctAnswers.map(normalizeGradedText).sort();
 
   const isCorrect =
     selectedNorm.length === correctNorm.length &&
@@ -4284,17 +4447,19 @@ function handlePracticeSATAAnswer(question, selectedAnswers, correctAnswers, rat
 
   buttons.forEach(button => {
     const answer = button.getAttribute("data-answer") || "";
-    const answerNorm = normalize(answer);
-    const isSelected = button.classList.contains("selected");
+    const answerNorm = normalizeGradedText(answer);
+    const isSelected = selectedNorm.includes(answerNorm);
     const isActuallyCorrect = correctNorm.includes(answerNorm);
 
     button.disabled = true;
-    button.classList.remove("selected", "correct-choice", "wrong-choice");
+    button.classList.remove("selected", "correct-choice", "wrong-choice", "missed-correct");
 
-    if (isActuallyCorrect) {
+    if (isSelected && isActuallyCorrect) {
       button.classList.add("correct-choice");
     } else if (isSelected && !isActuallyCorrect) {
       button.classList.add("wrong-choice");
+    } else if (!isSelected && isActuallyCorrect) {
+      button.classList.add("missed-correct");
     }
   });
 
@@ -4331,7 +4496,9 @@ function handlePracticeSATAAnswer(question, selectedAnswers, correctAnswers, rat
 
   recordPracticeQuestionResult(question, isCorrect);
   if (stateKey) {
+    const previousState = practiceTestState.answerState?.[stateKey] || {};
     practiceTestState.answerState[stateKey] = {
+      ...previousState,
       type: question.item_type || question.question_type || 'sata',
       selectedAnswers: Array.isArray(selectedAnswers) ? selectedAnswers : [],
       correctAnswers: Array.isArray(correctAnswers) ? correctAnswers : [],
@@ -4352,25 +4519,18 @@ function handlePracticeCategorizeAnswer(question, container, mappings, placement
   const submitBtn = container.querySelector("#practice-categorize-submit");
   const items = container.querySelectorAll(".practice-categorize-item");
 
-  const normalize = (value) =>
-    String(value || "")
-      .toLowerCase()
-      .replace(/[^\w\s]/g, "")
-      .replace(/\s+/g, " ")
-      .trim();
-
   const answerMap = {};
   mappings.forEach(mapping => {
-    answerMap[normalize(mapping.item)] = normalize(mapping.category);
+    answerMap[normalizeGradedText(mapping.item)] = normalizeGradedText(mapping.category);
   });
 
   let allCorrect = true;
 
   items.forEach(item => {
     const itemLabel = item.getAttribute("data-item") || "";
-    const itemKey = normalize(itemLabel);
+    const itemKey = normalizeGradedText(itemLabel);
     const expectedCategory = answerMap[itemKey] || "";
-    const actualCategory = normalize(item.parentElement?.getAttribute("data-category") || "pool");
+    const actualCategory = normalizeGradedText(item.closest("[data-category]")?.getAttribute("data-category") || "pool");
 
     item.setAttribute("data-locked", "true");
     item.setAttribute("draggable", "false");
@@ -4771,11 +4931,12 @@ function renderVideoBlock(item, sectionIndex, onComplete) {
   const block = document.createElement('div');
   block.className = 'section-block';
   block.id = `section-${sectionIndex}`;
+  const bodyHtml = formatBodyText(item.body);
   block.innerHTML = baseCardShell(sectionIndex, 'Video', `
     <div class="video-card">
       <div class="video-card-header">
         <h2 class="content-header">${html(item.header)}</h2>
-        <div class="content-body">${html(item.body)}</div>
+        ${bodyHtml ? `<div class="content-body">${bodyHtml}</div>` : ''}
       </div>
       ${videoId
         ? `<div class="video-wrapper">
@@ -4802,10 +4963,11 @@ function renderTextBlock(item, sectionIndex, onComplete) {
   const block = document.createElement('div');
   block.className = 'section-block';
   block.id = `section-${sectionIndex}`;
+  const bodyHtml = formatBodyText(item.body);
   block.innerHTML = baseCardShell(sectionIndex, 'Reading', `
     <div class="text-card">
       <h2 class="content-header">${html(item.header)}</h2>
-      <div class="content-body">${html(item.body)}</div>
+      ${bodyHtml ? `<div class="content-body">${bodyHtml}</div>` : ''}
     </div>
   `);
   attachContinue(block, sectionIndex, onComplete, item.slot);
@@ -4817,12 +4979,13 @@ function renderTextImageBlock(item, sectionIndex, onComplete) {
   const block = document.createElement('div');
   block.className = 'section-block';
   block.id = `section-${sectionIndex}`;
+  const bodyHtml = formatBodyText(item.body);
   block.innerHTML = baseCardShell(sectionIndex, 'Reading', `
     <div class="text-image-card">
       <div class="text-image-inner">
         <div class="text-image-text">
           <h2 class="content-header">${html(item.header)}</h2>
-          <div class="content-body">${html(item.body)}</div>
+          ${bodyHtml ? `<div class="content-body">${bodyHtml}</div>` : ''}
         </div>
         <div class="text-image-img"><img src="${html(item.mediaUrl)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.onerror=null; this.parentElement.innerHTML='&lt;div class=&quot;text-image-fallback&quot;&gt;Image unavailable&lt;/div&gt;';" /></div>
       </div>
@@ -4979,10 +5142,16 @@ function renderModuleQuestionCard(item, sectionIndex, onComplete) {
   }
 
   const renderFrame = (inner) => {
+    const header = String(item.header || '').trim();
+    const body = String(item.body || '').trim();
+    const headerHtml = header ? `<h2 class="content-header">${html(header)}</h2>` : '';
+    const formattedBody = body ? formatBodyText(body) : '';
+    const bodyHtml = formattedBody ? `<div class="content-body">${formattedBody}</div>` : '';
+
     block.innerHTML = baseCardShell(sectionIndex, 'Knowledge Check', `
       <div class="interactive-card">
-        <h2 class="content-header">${html(item.header)}</h2>
-        <div class="content-body">${html(item.body)}</div>
+        ${headerHtml}
+        ${bodyHtml}
         ${inner}
         ${interactiveContinueHtml(state)}
       </div>
@@ -4995,7 +5164,9 @@ function renderModuleQuestionCard(item, sectionIndex, onComplete) {
     const correct = String(question.correct_blob || '');
     if (!correct) return renderIncompleteCard(item, sectionIndex, onComplete, 'SBA card is missing answer data.');
     const distractors = splitBlob(question.distractors_blob);
-    const options = shuffleArray([correct, ...distractors]);
+    const allOptions = [correct, ...distractors].filter(Boolean);
+    state.optionOrder = getStableOptionOrder(state.optionOrder, allOptions);
+    const options = state.optionOrder;
     const imageHtml = type === 'sba_image' && question.media_url
       ? `<div class="practice-image-wrap"><img src="${html(question.media_url)}" alt="Question image" class="practice-image" /></div>`
       : '';
@@ -5088,7 +5259,9 @@ function renderModuleQuestionCard(item, sectionIndex, onComplete) {
   if (type === 'sata') {
     const correctAnswers = splitBlob(question.correct_blob);
     const distractors = splitBlob(question.distractors_blob);
-    const options = shuffleArray([...new Set([...correctAnswers, ...distractors])]);
+    const allOptions = [...new Set([...correctAnswers, ...distractors])];
+    state.optionOrder = getStableOptionOrder(state.optionOrder, allOptions);
+    const options = state.optionOrder;
     if (!correctAnswers.length || !options.length) {
   return renderIncompleteCard(item, sectionIndex, onComplete, 'SATA card is missing option/answer data.');
 }
@@ -5099,7 +5272,7 @@ function renderModuleQuestionCard(item, sectionIndex, onComplete) {
       <div style="margin-top:10px; margin-bottom:12px; font-size:0.86rem; color:#5f718f;">Select all that apply.</div>
       <div class="practice-sata-options">
         ${options.map(answer => `
-          <button type="button" class="practice-sata-btn ${(state.selectedAnswers || []).includes(answer) ? 'selected' : ''}" data-answer="${html(answer)}" ${state.submitted ? 'disabled' : ''}>
+          <button type="button" class="practice-sata-btn ${!state.submitted && (state.selectedAnswers || []).includes(answer) ? 'selected' : ''}" data-answer="${html(answer)}" ${state.submitted ? 'disabled' : ''}>
             <span class="practice-answer-text">${html(answer)}</span>
             <span class="sata-check">✓</span>
           </button>
@@ -5123,10 +5296,14 @@ function renderModuleQuestionCard(item, sectionIndex, onComplete) {
       } else {
         const norm = normalizeGradedText(answer);
         const selected = (state.selectedAnswers || []).includes(answer);
-        if (correctNorm.includes(norm)) {
+        const isActuallyCorrect = correctNorm.includes(norm);
+        button.classList.remove('selected', 'correct-choice', 'wrong-choice', 'missed-correct');
+        if (selected && isActuallyCorrect) {
           button.classList.add('correct-choice');
-        } else if (selected) {
+        } else if (selected && !isActuallyCorrect) {
           button.classList.add('wrong-choice');
+        } else if (!selected && isActuallyCorrect) {
+          button.classList.add('missed-correct');
         }
       }
     });
@@ -5144,12 +5321,18 @@ function renderModuleQuestionCard(item, sectionIndex, onComplete) {
   }
 
   if (type === 'categorize') {
-    const mappings = parseCategoryMappings(question.correct_blob);
+    const { mappings, categories } = getCategorizeMappingsAndCategories(question.correct_blob);
     if (!mappings.length) return renderIncompleteCard(item, sectionIndex, onComplete, 'Categorize card is missing answer mappings.');
-    const categories = [...new Set(mappings.map(m => m.category))];
-    const items = shuffleArray([...new Set(mappings.map(m => m.item))]);
+    const allItems = [...new Set(mappings.map(m => m.item))];
+    state.itemOrder = getStableOptionOrder(state.itemOrder, allItems);
+    const items = state.itemOrder;
     const isMobileMode = window.matchMedia('(max-width: 700px)').matches;
-    const placements = Array.isArray(state.placements) ? state.placements : [];
+    const validCategories = new Set(categories);
+    const itemSet = new Set(items);
+    const placements = Array.isArray(state.placements)
+      ? state.placements.filter(p => itemSet.has(p.item) && validCategories.has(p.placedIn))
+      : [];
+    state.placements = placements;
     const placedMap = new Map(placements.map(p => [p.item, p.placedIn]));
     const answerMap = new Map(mappings.map(p => [normalizeGradedText(p.item), normalizeGradedText(p.category)]));
 
@@ -5162,8 +5345,8 @@ function renderModuleQuestionCard(item, sectionIndex, onComplete) {
       <div class="practice-categorize-layout">
         <div class="practice-categorize-pool practice-categorize-dropzone" data-category="pool">
           <div class="practice-categorize-pool-title">Items to place</div>
-          ${isMobileMode ? `<div class="practice-categorize-mobile-hint">${state.mobileSelectedItem ? `Selected: ${html(state.mobileSelectedItem)}` : 'No item selected.'}</div>` : ''}
-          <div class="practice-categorize-items">
+          ${isMobileMode ? `<div class="practice-categorize-mobile-hint module-categorize-selection-hint">${state.mobileSelectedItem ? `Selected: ${html(state.mobileSelectedItem)}` : 'No item selected.'}</div>` : ''}
+          <div class="practice-categorize-items module-categorize-pool-items">
             ${items.filter(itemName => !placedMap.has(itemName)).map(itemName => `<div class="practice-categorize-item ${state.mobileSelectedItem === itemName ? 'selected' : ''}" draggable="${state.submitted ? 'false' : 'true'}" data-item="${html(itemName)}">${html(itemName)}</div>`).join('')}
           </div>
         </div>
@@ -5171,7 +5354,9 @@ function renderModuleQuestionCard(item, sectionIndex, onComplete) {
           ${categories.map(category => `
             <div class="practice-categorize-zone practice-categorize-dropzone" data-category="${html(category)}" style="margin-bottom:12px;">
               <div class="practice-categorize-zone-title">${html(category)}</div>
-              ${(placements || []).filter(p => p.placedIn === category).map(p => `<div class="practice-categorize-item ${state.mobileSelectedItem === p.item ? 'selected' : ''}" draggable="${state.submitted ? 'false' : 'true'}" data-item="${html(p.item)}">${html(p.item)}</div>`).join('')}
+              <div class="practice-categorize-items">
+                ${items.filter(itemName => placedMap.get(itemName) === category).map(itemName => `<div class="practice-categorize-item ${state.mobileSelectedItem === itemName ? 'selected' : ''}" draggable="${state.submitted ? 'false' : 'true'}" data-item="${html(itemName)}">${html(itemName)}</div>`).join('')}
+              </div>
             </div>
           `).join('')}
         </div>
@@ -5183,21 +5368,51 @@ function renderModuleQuestionCard(item, sectionIndex, onComplete) {
     `);
     initializePracticeStemToggle(block);
 
-    const getPlacementSnapshot = () => [...block.querySelectorAll('.practice-categorize-item')].map(node => ({
+    const selectionHint = block.querySelector('.module-categorize-selection-hint');
+    const getAllItems = () => block.querySelectorAll('.practice-categorize-item');
+    const poolItems = block.querySelector('.module-categorize-pool-items');
+    const getPlacementSnapshot = () => [...getAllItems()].map(node => ({
       item: node.getAttribute('data-item') || '',
-      placedIn: node.parentElement?.getAttribute('data-category') || 'pool'
+      placedIn: node.closest('[data-category]')?.getAttribute('data-category') || 'pool'
     })).filter(p => p.item && p.placedIn !== 'pool');
+    const refreshMobileSelection = () => {
+      if (isMobileMode) {
+        getAllItems().forEach(node => {
+          const isSelected = (node.getAttribute('data-item') || '') === (state.mobileSelectedItem || '');
+          node.classList.toggle('selected', isSelected);
+        });
+        if (selectionHint) {
+          selectionHint.textContent = state.mobileSelectedItem ? `Selected: ${state.mobileSelectedItem}` : 'No item selected.';
+        }
+      }
+    };
+    const moveItemToCategory = (itemNode, category) => {
+      if (!itemNode) return;
+      if (category === 'pool') {
+        poolItems?.appendChild(itemNode);
+      } else {
+        const targetZone = [...block.querySelectorAll('.practice-categorize-zone')].find(zone => (zone.getAttribute('data-category') || '') === category);
+        const targetItems = targetZone?.querySelector('.practice-categorize-items');
+        targetItems?.appendChild(itemNode);
+      }
+      state.placements = getPlacementSnapshot();
+      state.mobileSelectedItem = '';
+      persistProgress();
+      refreshMobileSelection();
+    };
 
     let dragged = null;
-    const itemEls = block.querySelectorAll('.practice-categorize-item');
+    const itemEls = getAllItems();
     const zones = block.querySelectorAll('.practice-categorize-dropzone');
     itemEls.forEach(node => {
       node.addEventListener('dragstart', () => { if (!state.submitted) dragged = node; });
       if (!state.submitted && isMobileMode) {
-        node.addEventListener('click', () => {
+        node.addEventListener('click', (event) => {
+          event.preventDefault();
+          event.stopPropagation();
           state.mobileSelectedItem = state.mobileSelectedItem === (node.dataset.item || '') ? '' : (node.dataset.item || '');
           persistProgress();
-          replaceCard(block, renderModuleQuestionCard(item, sectionIndex, onComplete));
+          refreshMobileSelection();
         });
       }
     });
@@ -5206,33 +5421,25 @@ function renderModuleQuestionCard(item, sectionIndex, onComplete) {
       zone.addEventListener('drop', e => {
         if (state.submitted || !dragged) return;
         e.preventDefault();
-        const targetItems = zone.querySelector('.practice-categorize-items');
-        if (targetItems) targetItems.appendChild(dragged);
-        else zone.appendChild(dragged);
-        state.placements = getPlacementSnapshot();
-        state.mobileSelectedItem = '';
-        persistProgress();
+        moveItemToCategory(dragged, zone.getAttribute('data-category') || 'pool');
       });
       if (!state.submitted && isMobileMode) {
         zone.addEventListener('click', () => {
-          const selectedItem = state.mobileSelectedItem;
+          const selectedItem = state.mobileSelectedItem || '';
           if (!selectedItem) return;
-          const moved = (state.placements || []).filter(p => p.item !== selectedItem);
-          const category = zone.getAttribute('data-category') || 'pool';
-          if (category !== 'pool') moved.push({ item: selectedItem, placedIn: category });
-          state.placements = moved;
-          state.mobileSelectedItem = '';
-          persistProgress();
-          replaceCard(block, renderModuleQuestionCard(item, sectionIndex, onComplete));
+          const selectedNode = [...getAllItems()].find(node => (node.getAttribute('data-item') || '') === selectedItem);
+          if (!selectedNode) return;
+          moveItemToCategory(selectedNode, zone.getAttribute('data-category') || 'pool');
         });
       }
     });
     if (!state.submitted) {
       block.querySelector('.module-categorize-reset')?.addEventListener('click', () => {
+        getAllItems().forEach(node => poolItems?.appendChild(node));
         state.placements = [];
         state.mobileSelectedItem = '';
         persistProgress();
-        replaceCard(block, renderModuleQuestionCard(item, sectionIndex, onComplete));
+        refreshMobileSelection();
       });
       block.querySelector('.module-categorize-submit')?.addEventListener('click', () => {
         state.placements = getPlacementSnapshot();
@@ -5245,8 +5452,11 @@ function renderModuleQuestionCard(item, sectionIndex, onComplete) {
     } else {
       block.querySelectorAll('.practice-categorize-item').forEach(node => {
         const itemName = node.getAttribute('data-item') || '';
-        const placedIn = node.parentElement?.getAttribute('data-category') || 'pool';
+        const placedIn = node.closest('[data-category]')?.getAttribute('data-category') || 'pool';
         const expected = answerMap.get(normalizeGradedText(itemName)) || '';
+
+        node.classList.remove('correct', 'incorrect', 'selected');
+
         if (normalizeGradedText(placedIn) === expected) {
           node.classList.add('correct');
         } else {
@@ -5254,6 +5464,7 @@ function renderModuleQuestionCard(item, sectionIndex, onComplete) {
         }
       });
     }
+    refreshMobileSelection();
     return block;
   }
 
@@ -5265,9 +5476,10 @@ function renderReflectionCard(item, sectionIndex, onComplete) {
   const state = ensureCardState(sectionIndex, { text: '', submitted: false, completed: false });
   const block = document.createElement('div');
   block.className = 'section-block';
+  const bodyHtml = formatBodyText(item.body);
   block.innerHTML = baseCardShell(sectionIndex, 'Reflection', `
     <div class="interactive-card">
-      <h2 class="content-header">${html(item.header)}</h2><div class="content-body">${html(item.body)}</div>
+      <h2 class="content-header">${html(item.header)}</h2>${bodyHtml ? `<div class="content-body">${bodyHtml}</div>` : ''}
       <p class="question-stem">${html(item.prompt)}</p>
       <textarea class="reflection-input" placeholder="Write your reflection..." ${state.submitted?'disabled':''}>${html(state.text)}</textarea>
       <button class="action-btn">Submit reflection</button>
@@ -5292,6 +5504,7 @@ function renderPollCard(item, sectionIndex, onComplete) {
   const state = ensureCardState(sectionIndex, { submitted: false, selected: multi ? [] : '', completed: false });
   const block = document.createElement('div');
   block.className = 'section-block';
+  const bodyHtml = formatBodyText(item.body);
   const inputType = multi ? 'checkbox' : 'radio';
   const optionsHtml = item.options.map(opt => {
     const checked = multi ? (state.selected||[]).includes(opt) : state.selected === opt;
@@ -5299,7 +5512,7 @@ function renderPollCard(item, sectionIndex, onComplete) {
   }).join('');
   block.innerHTML = baseCardShell(sectionIndex, 'Poll', `
     <div class="interactive-card">
-      <h2 class="content-header">${html(item.header)}</h2><div class="content-body">${html(item.body)}</div>
+      <h2 class="content-header">${html(item.header)}</h2>${bodyHtml ? `<div class="content-body">${bodyHtml}</div>` : ''}
       <p class="question-stem">${html(item.prompt)}</p>
       <div class="poll-options">${optionsHtml}</div>
       <button class="action-btn">Submit</button>
@@ -5412,7 +5625,6 @@ function renderTraining(structure, savedState = null) {
       st.expanded = i === idx;
       updateSectionUI(i);
     });
-    currentSectionIndex = idx;
     if (updateProgressPointer) progressionSectionIndex = idx;
     updateProgress();
   }
@@ -5422,7 +5634,6 @@ function renderTraining(structure, savedState = null) {
       if (i === progressionSectionIndex && st.unlocked && !st.expanded) st.expanded = true;
       updateSectionUI(i);
     });
-    currentSectionIndex = progressionSectionIndex;
     updateProgress();
   }
 
@@ -5571,6 +5782,70 @@ function showCompletion() {
   }
 }
 
+function buildModuleResponseValues() {
+  const itemValues = [];
+  const itemMap = {};
+
+  let globalCardIndex = 0;
+  allSections.forEach(section => {
+    const cards = Array.isArray(section?.cards) ? section.cards : [];
+    cards.forEach(card => {
+      const type = String(card?.type || '').trim().toLowerCase();
+      const state = quizStates?.[globalCardIndex] || {};
+      let value = '';
+
+      if (isQuestionCardType(type)) {
+        value = state?.submitted ? (state?.wasCorrect ? 1 : 0) : '';
+      } else if (type === 'poll') {
+        if (Array.isArray(state?.selected)) value = state.selected.join(' | ');
+        else if (typeof state?.selected === 'string') value = state.selected;
+      } else if (type === 'reflection') {
+        value = typeof state?.text === 'string' ? state.text.trim() : '';
+      }
+
+      itemValues.push(value);
+      itemMap[`item_${globalCardIndex + 1}`] = value;
+      globalCardIndex += 1;
+    });
+  });
+
+  return { itemValues, itemMap };
+}
+
+function buildSubmissionPayload({
+  clockMinutes,
+  activeMinutes,
+  interactionRate,
+  deviceType
+}) {
+  const timestamp = now();
+  const { itemValues, itemMap } = buildModuleResponseValues();
+  console.log('[submitSession] unified item map', itemMap);
+
+  return {
+    action:            'submitSession',
+    participantEmail:  participantEmail,
+    participantCode:   participantCode,
+    moduleKey:         moduleKey,
+    sessionId:         sessionId,
+    sessionStart:      sessionStart ? new Date(sessionStart).toISOString() : null,
+    sessionEnd:        timestamp,
+    totalQuestions:    totalQuestions,
+    completionReached: completionReached,
+    clock_minutes:     clockMinutes,
+    active_minutes:    activeMinutes,
+    interaction_rate:  interactionRate,
+    device_type:       deviceType,
+    events,
+    email:             participantEmail,
+    module_key:        moduleKey,
+    timestamp:         timestamp,
+    item_values:       itemValues,
+    item_map:          itemMap,
+    item_count:        itemValues.length
+  };
+}
+
 async function submitSession() {
   const btn    = $('btn-submit-final');
   const status = $('submit-status');
@@ -5589,22 +5864,12 @@ async function submitSession() {
     : 0;
   const deviceType = getDeviceType();
 
-  const payload = {
-  action:            'submitSession',
-  participantEmail:  participantEmail,
-  participantCode:   participantCode,
-  moduleKey:         moduleKey,
-  sessionId:         sessionId,
-  sessionStart:      sessionStart ? new Date(sessionStart).toISOString() : null,
-  sessionEnd:        now(),
-  totalQuestions:    totalQuestions,
-  completionReached: completionReached,
-  clock_minutes:     clockMinutes,
-  active_minutes:    activeMinutes,
-  interaction_rate:  interactionRate,
-  device_type:       deviceType,
-  events
-};
+  const payload = buildSubmissionPayload({
+    clockMinutes,
+    activeMinutes,
+    interactionRate,
+    deviceType
+  });
   
 
   try {
@@ -5624,7 +5889,6 @@ async function submitSession() {
       hasSuccessfulSubmission = true;
       trainingActive = false;
       completionReached = true;
-      clearSavedProgress();
       btn.textContent = '✓ Submitted';
       btn.style.background = '#166534';
       btn.disabled = true;
@@ -5652,7 +5916,7 @@ function offerDownload(payload) {
   wrap.style.cssText = 'margin-top:14px; padding:14px 16px; background:#fef9ec; border:1px solid #c8a84b; border-radius:10px; font-size:0.88rem; line-height:1.6; color:#10213d;';
   wrap.innerHTML = `
     <strong style="display:block; margin-bottom:6px;">Automatic submission failed.</strong>
-    Please save your session data manually:
+    Please save your session data manually (includes per-card response data):
     <ol style="margin: 8px 0 12px 18px; padding:0;">
       <li>Click <strong>Download session file</strong> below.</li>
       <li>Email the downloaded file to <strong>tjin@crimson.ua.edu</strong>.</li>
@@ -5670,7 +5934,11 @@ function offerDownload(payload) {
   `;
 
   dlBtn.addEventListener('click', () => {
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const backupPayload = {
+      ...payload,
+      backup_note: 'Contains unified per-card response data in item_values and item_map.'
+    };
+    const blob = new Blob([JSON.stringify(backupPayload, null, 2)], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = `${payload.participantEmail || 'session'}_${payload.sessionId || 'data'}.json`;
@@ -5736,11 +6004,13 @@ function resetModuleState() {
   interactionTimes.length = 0;
   totalQuestions = 0;
   correctFirst = 0;
+  totalSlots = 0;
   revealedSlots = 0;
   completedSlots = new Set();
+  progressionSectionIndex = 0;
+  allSections = [];
   $('sections-container').innerHTML = '';
-  $('completion').style.display = 'none';
-  $('submit-status').textContent = '';
+  resetTrainingUi();
 }
 
 function clearTransientModuleLaunchState() {
@@ -5852,6 +6122,8 @@ function initializeGoogleSignIn() {
 
 
 function showScreen(name) {
+  if (name !== 'training') resetTrainingUi();
+  document.body.classList.toggle('training-mode', name === 'training');
   $('auth-screen').style.display = name === 'auth' ? 'flex' : 'none';
   $('dashboard').style.display = name === 'dashboard' ? 'block' : 'none';
   $('loading').style.display = name === 'loading' ? 'flex' : 'none';
@@ -5981,22 +6253,27 @@ async function startModuleByKey(selectedModuleKey) {
   let savedState = null;
 
   if (saved) {
-    const choice = await askResumeChoice();
-    if (choice === 'continue') {
-      sessionId = saved.sessionId;
-      sessionStart = saved.sessionStart;
-      totalQuestions = saved.totalQuestions || 0;
-      correctFirst = saved.correctFirst || 0;
-      events = saved.events || [];
-      interactionTimes.length = 0;
-      interactionTimes.push(...(saved.interactionTimes || []));
-      completionReached = !!saved.completionReached;
-      hasSuccessfulSubmission = !!saved.hasSuccessfulSubmission;
-      quizStates = saved.quizStates || {};
-      savedState = saved;
-    } else {
+    if (saved.hasSuccessfulSubmission === true || saved.completionReached === true) {
       clearSavedProgress();
       resetModuleState();
+    } else {
+      const choice = await askResumeChoice();
+      if (choice === 'continue') {
+        sessionId = saved.sessionId;
+        sessionStart = saved.sessionStart;
+        totalQuestions = saved.totalQuestions || 0;
+        correctFirst = saved.correctFirst || 0;
+        events = saved.events || [];
+        interactionTimes.length = 0;
+        interactionTimes.push(...(saved.interactionTimes || []));
+        completionReached = !!saved.completionReached;
+        hasSuccessfulSubmission = !!saved.hasSuccessfulSubmission;
+        quizStates = saved.quizStates || {};
+        savedState = saved;
+      } else {
+        clearSavedProgress();
+        resetModuleState();
+      }
     }
   } else {
     resetModuleState();
@@ -6035,22 +6312,27 @@ async function startModuleByAssignmentKey() {
     participantCode = assignedKey;
 
     if (saved) {
-      const choice = await askResumeChoice();
-      if (choice === 'continue') {
-        sessionId = saved.sessionId;
-        sessionStart = saved.sessionStart;
-        totalQuestions = saved.totalQuestions || 0;
-        correctFirst = saved.correctFirst || 0;
-        events = saved.events || [];
-        interactionTimes.length = 0;
-        interactionTimes.push(...(saved.interactionTimes || []));
-        completionReached = !!saved.completionReached;
-        hasSuccessfulSubmission = !!saved.hasSuccessfulSubmission;
-        quizStates = saved.quizStates || {};
-        savedState = saved;
-      } else {
+      if (saved.hasSuccessfulSubmission === true || saved.completionReached === true) {
         clearSavedProgress();
         resetModuleState();
+      } else {
+        const choice = await askResumeChoice();
+        if (choice === 'continue') {
+          sessionId = saved.sessionId;
+          sessionStart = saved.sessionStart;
+          totalQuestions = saved.totalQuestions || 0;
+          correctFirst = saved.correctFirst || 0;
+          events = saved.events || [];
+          interactionTimes.length = 0;
+          interactionTimes.push(...(saved.interactionTimes || []));
+          completionReached = !!saved.completionReached;
+          hasSuccessfulSubmission = !!saved.hasSuccessfulSubmission;
+          quizStates = saved.quizStates || {};
+          savedState = saved;
+        } else {
+          clearSavedProgress();
+          resetModuleState();
+        }
       }
     } else {
       resetModuleState();
@@ -6240,6 +6522,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
   $('btn-save-exit').addEventListener('click', () => { handleSaveAndExit(); });
   $('btn-back-dashboard').addEventListener('click', async () => {
+    if (hasSuccessfulSubmission && moduleKey) {
+      clearSavedProgress();
+    }
+    resetModuleState();
+    resetTrainingUi();
     trainingActive = false;
     showScreen('dashboard');
     try { await loadDashboard(); } catch (_) {}
