@@ -289,7 +289,7 @@
     }
     .dashboard-card h3 { margin: 0 0 8px; font-size: 0.98rem; }
 
-    /* ── DASHBOARD NAVIGATION HUB ── */
+    /* ── DASHBOARD NAVIGATION ── */
     .dashboard-view { display: none; }
     .dashboard-view.active { display: block; }
 
@@ -310,6 +310,7 @@
       font-size: 0.98rem;
     }
 
+    .course-choice-grid,
     .dashboard-choice-grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -317,17 +318,92 @@
       margin-bottom: 18px;
     }
 
-    .dashboard-choice {
+    .course-choice {
       width: 100%;
-      min-height: 150px;
-      text-align: left;
-      padding: 22px;
+      min-height: 205px;
+      padding: 16px 18px 18px;
       border: 1px solid var(--rule);
       border-radius: 16px;
       background: var(--white);
       color: var(--navy);
       box-shadow: var(--shadow);
       cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .course-choice:hover,
+    .course-choice:focus-visible {
+      transform: translateY(-2px);
+      border-color: var(--gold);
+      box-shadow: 0 10px 24px rgba(16,33,61,0.1);
+      outline: none;
+    }
+
+    .course-choice-icon {
+      width: 126px;
+      height: 108px;
+      object-fit: contain;
+      display: block;
+      margin: 0 auto 10px;
+    }
+
+    .course-choice-name {
+      display: block;
+      font-family: var(--serif);
+      font-size: 1.16rem;
+      font-weight: 700;
+      line-height: 1.25;
+    }
+
+    .course-hub-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 14px;
+      margin: 10px 0 16px;
+    }
+
+    .course-hub-kicker {
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 3px;
+    }
+
+    .course-hub-title {
+      font-family: var(--serif);
+      font-size: clamp(1.55rem, 4vw, 2rem);
+      line-height: 1.2;
+    }
+
+    .course-hub-prompt {
+      color: var(--muted);
+      margin: 2px 0 12px;
+      font-size: 0.95rem;
+    }
+
+    .dashboard-choice {
+      width: 100%;
+      min-height: 205px;
+      padding: 16px 18px 18px;
+      border: 1px solid var(--rule);
+      border-radius: 16px;
+      background: var(--white);
+      color: var(--navy);
+      box-shadow: var(--shadow);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
       transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
     }
 
@@ -339,19 +415,28 @@
       outline: none;
     }
 
+    .dashboard-choice-icon {
+      width: 118px;
+      height: 92px;
+      object-fit: contain;
+      display: block;
+      margin: 0 auto 8px;
+    }
+
     .dashboard-choice-title {
       display: block;
       font-family: var(--serif);
-      font-size: 1.22rem;
+      font-size: 1.18rem;
       font-weight: 700;
-      margin-bottom: 6px;
+      margin-bottom: 4px;
     }
 
     .dashboard-choice-copy {
       display: block;
       color: var(--muted);
-      font-size: 0.92rem;
-      line-height: 1.45;
+      font-size: 0.88rem;
+      line-height: 1.4;
+      max-width: 240px;
     }
 
     .dashboard-subview-header {
@@ -368,9 +453,7 @@
       line-height: 1.2;
     }
 
-    .dashboard-back-btn {
-      flex: 0 0 auto;
-    }
+    .dashboard-back-btn { flex: 0 0 auto; }
 
     .module-entry-wrap {
       text-align: center;
@@ -395,9 +478,7 @@
     }
 
     .module-entry-toggle:hover span,
-    .module-entry-toggle:focus-visible span {
-      color: var(--navy);
-    }
+    .module-entry-toggle:focus-visible span { color: var(--navy); }
 
     #assignment-card {
       margin-top: 8px;
@@ -408,78 +489,10 @@
       border: 1px solid var(--rule);
       background: #f8fbff;
       border-radius: 12px;
-      padding: 14px 16px;
+      padding: 12px 14px;
       margin-bottom: 12px;
       color: var(--navy);
-      font-size: 0.92rem;
-    }
-
-    .resource-course-select {
-      padding: 4px 0 2px;
-    }
-
-    .resource-course-prompt {
-      margin-bottom: 12px;
-      color: var(--navy);
-      font-size: 1rem;
-      font-weight: 600;
-    }
-
-    .resource-course-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 12px;
-    }
-
-    .resource-course-btn {
-      width: 100%;
-      min-height: 96px;
-      padding: 16px 18px;
-      text-align: left;
-      border: 1px solid var(--rule);
-      border-radius: 14px;
-      background: var(--white);
-      color: var(--navy);
-      cursor: pointer;
-      transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
-    }
-
-    .resource-course-btn:hover,
-    .resource-course-btn:focus-visible {
-      transform: translateY(-1px);
-      border-color: var(--gold);
-      box-shadow: 0 8px 20px rgba(16,33,61,0.08);
-      outline: none;
-    }
-
-    .resource-course-name {
-      display: block;
-      font-family: var(--serif);
-      font-size: 1.08rem;
-      font-weight: 700;
-      line-height: 1.25;
-    }
-
-    .resource-course-page {
-      display: none;
-    }
-
-    .resource-course-page.active {
-      display: block;
-    }
-
-    .resource-course-page-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      margin-bottom: 12px;
-    }
-
-    .resource-course-page-title {
-      font-family: var(--serif);
-      font-size: clamp(1.22rem, 3.5vw, 1.55rem);
-      line-height: 1.2;
+      font-size: 0.9rem;
     }
 
     .resource-placeholder {
@@ -514,13 +527,8 @@
       color: var(--navy);
     }
 
-    .resource-type-group {
-      padding: 9px 10px 10px;
-    }
-
-    .resource-type-group + .resource-type-group {
-      border-top: 1px solid var(--rule);
-    }
+    .resource-type-group { padding: 9px 10px 10px; }
+    .resource-type-group + .resource-type-group { border-top: 1px solid var(--rule); }
 
     .resource-type-heading {
       margin: 0 2px 6px;
@@ -532,10 +540,7 @@
       line-height: 1.2;
     }
 
-    .resource-card-list {
-      display: grid;
-      gap: 6px;
-    }
+    .resource-card-list { display: grid; gap: 6px; }
 
     .resource-item-card {
       width: 100%;
@@ -564,15 +569,8 @@
       outline: none;
     }
 
-    .resource-item-card:disabled {
-      cursor: default;
-      opacity: 1;
-    }
-
-    .resource-item-main {
-      min-width: 0;
-      flex: 1 1 auto;
-    }
+    .resource-item-card:disabled { cursor: default; opacity: 1; }
+    .resource-item-main { min-width: 0; flex: 1 1 auto; }
 
     .resource-item-title {
       font-size: 0.92rem;
@@ -602,34 +600,47 @@
     }
 
     @media (max-width: 640px) {
-      .dashboard-choice-grid {
-        grid-template-columns: 1fr;
+      .course-choice-grid,
+      .dashboard-choice-grid { grid-template-columns: 1fr; }
+
+      .course-choice {
+        min-height: 0;
+        padding: 14px 16px;
+        flex-direction: row;
+        justify-content: flex-start;
+        text-align: left;
+        gap: 14px;
       }
+
+      .course-choice-icon {
+        width: 82px;
+        height: 72px;
+        margin: 0;
+        flex: 0 0 auto;
+      }
+
+      .course-hub-header,
+      .dashboard-subview-header { align-items: flex-start; }
 
       .dashboard-choice {
         min-height: 0;
-        padding: 18px;
+        padding: 14px 16px;
+        flex-direction: row;
+        justify-content: flex-start;
+        text-align: left;
+        gap: 14px;
       }
 
-      .dashboard-subview-header {
-        align-items: flex-start;
+      .dashboard-choice-icon {
+        width: 82px;
+        height: 68px;
+        margin: 0;
+        flex: 0 0 auto;
       }
 
-      .resource-course-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .resource-course-page-header {
-        align-items: flex-start;
-      }
-
-      .resource-item-card {
-        padding: 10px 11px;
-      }
-
-      .resource-item-title {
-        font-size: 0.9rem;
-      }
+      .dashboard-choice-copy { max-width: none; }
+      .resource-item-card { padding: 10px 11px; }
+      .resource-item-title { font-size: 0.9rem; }
     }
     .modules-list { display:flex; flex-direction:column; gap:10px; }
     .module-item { border:1px solid var(--rule); border-radius:10px; padding:12px; display:flex; justify-content:space-between; gap:10px; align-items:center; }
@@ -2046,22 +2057,21 @@
       <button class="action-btn" id="btn-logout" type="button">Sign out</button>
     </div>
 
-    <!-- Dashboard home / navigation hub -->
+    <!-- Course selection -->
     <div id="dashboard-home-view" class="dashboard-view active">
       <header class="dashboard-home-header">
         <h1 class="dashboard-home-title">Jin's Student Learning Platform</h1>
-        <p class="dashboard-home-sub">What would you like to use?</p>
+        <p class="dashboard-home-sub">Choose a course to get started.</p>
       </header>
 
-      <div class="dashboard-choice-grid">
-        <button class="dashboard-choice" id="open-practice-view-btn" type="button">
-          <span class="dashboard-choice-title">Practice Quizzes</span>
-          <span class="dashboard-choice-copy">Practice questions by course and topic.</span>
+      <div class="course-choice-grid">
+        <button class="course-choice" id="select-health-assessment-btn" type="button" data-course-key="health-assessment">
+          <img class="course-choice-icon" src="images/assessicon.png" alt="" aria-hidden="true" onerror="this.style.display='none'">
+          <span class="course-choice-name">Health Assessment</span>
         </button>
-
-        <button class="dashboard-choice" id="open-resource-view-btn" type="button">
-          <span class="dashboard-choice-title">Resource Library</span>
-          <span class="dashboard-choice-copy">Supplemental learning resources organized by course.</span>
+        <button class="course-choice" id="select-pediatric-nursing-btn" type="button" data-course-key="pediatric-nursing">
+          <img class="course-choice-icon" src="images/pedsicon.png" alt="" aria-hidden="true" onerror="this.style.display='none'">
+          <span class="course-choice-name">Pediatric Nursing</span>
         </button>
       </div>
 
@@ -2081,19 +2091,47 @@
       </div>
     </div>
 
+    <!-- Selected course hub -->
+    <div id="course-home-view" class="dashboard-view">
+      <div class="course-hub-header">
+        <div>
+          <p class="course-hub-kicker">Selected course</p>
+          <h2 class="course-hub-title" id="course-home-title">Course</h2>
+        </div>
+        <button class="action-btn secondary dashboard-back-btn" id="change-course-btn" type="button">Change course</button>
+      </div>
+
+      <p class="course-hub-prompt">What would you like to use?</p>
+
+      <div class="dashboard-choice-grid">
+        <button class="dashboard-choice" id="open-practice-view-btn" type="button">
+          <img class="dashboard-choice-icon" src="images/quizicon.png" alt="" aria-hidden="true" onerror="this.style.display='none'">
+          <span>
+            <span class="dashboard-choice-title">Practice Quizzes</span>
+            <span class="dashboard-choice-copy">Practice questions organized by topic.</span>
+          </span>
+        </button>
+
+        <button class="dashboard-choice" id="open-resource-view-btn" type="button">
+          <img class="dashboard-choice-icon" src="images/libraryicon.png" alt="" aria-hidden="true" onerror="this.style.display='none'">
+          <span>
+            <span class="dashboard-choice-title">Resource Library</span>
+            <span class="dashboard-choice-copy">Supplemental flashcards, videos, and other learning resources.</span>
+          </span>
+        </button>
+      </div>
+    </div>
+
     <!-- Practice quizzes -->
     <div id="practice-view" class="dashboard-view">
       <div class="dashboard-subview-header">
-        <h2 class="dashboard-subview-title">Practice Quizzes</h2>
-        <button class="action-btn secondary dashboard-back-btn" id="practice-back-home-btn" type="button">Back</button>
+        <h2 class="dashboard-subview-title" id="practice-view-title">Practice Quizzes</h2>
+        <button class="action-btn secondary dashboard-back-btn" id="practice-back-course-btn" type="button">Back</button>
       </div>
 
       <section class="dashboard-card">
         <div id="practice-setup-card" class="practice-setup-card">
-          <p class="module-label">Select a Course</p>
-          <select id="practice-course-select" class="gate-input" disabled>
-            <option value="">Loading courses...</option>
-          </select>
+          <p class="module-label">Select Topics</p>
           <div id="practice-topic-list" class="practice-topic-list"></div>
           <div class="practice-setup-row" id="practice-controls-row" hidden>
             <label for="practice-question-count">Question count</label>
@@ -2134,28 +2172,15 @@
     <!-- Resource library -->
     <div id="resource-view" class="dashboard-view">
       <div class="dashboard-subview-header">
-        <h2 class="dashboard-subview-title">Resource Library</h2>
-        <button class="action-btn secondary dashboard-back-btn" id="resource-back-home-btn" type="button">Back</button>
+        <h2 class="dashboard-subview-title" id="resource-view-title">Resource Library</h2>
+        <button class="action-btn secondary dashboard-back-btn" id="resource-back-course-btn" type="button">Back</button>
       </div>
 
       <div class="resource-notice">
         <strong>These resources are optional and supplemental.</strong> They are provided to support your learning and review and are not required course activities.
       </div>
 
-      <section class="dashboard-card" id="resource-course-select-panel">
-        <div class="resource-course-select">
-          <p class="resource-course-prompt">Which course are you interested in?</p>
-          <div class="resource-course-grid" id="resource-course-grid"></div>
-        </div>
-      </section>
-
-      <section class="dashboard-card resource-course-page" id="resource-course-page">
-        <div class="resource-course-page-header">
-          <h3 class="resource-course-page-title" id="resource-course-page-title">Course Resources</h3>
-          <button class="action-btn secondary" id="resource-back-courses-btn" type="button">Change course</button>
-        </div>
-        <div class="resource-course-content" id="resource-course-content"></div>
-      </section>
+      <div class="resource-course-content" id="resource-course-content"></div>
     </div>
 
     <p class="dashboard-error" id="dashboard-error"></p>
@@ -2734,7 +2759,6 @@ function clearCachedPracticeTopics() {
 }
 
 async function fetchPracticeTopics(forceRefresh = false) {
-  const courseSelect = $('practice-course-select');
   const startBtn = $('practice-start-btn');
 
   const cachedTopics = !forceRefresh ? loadCachedPracticeTopics() : null;
@@ -2747,10 +2771,6 @@ async function fetchPracticeTopics(forceRefresh = false) {
   practiceTestState.practiceTopicsLoading = true;
   practiceTestState.practiceTopicsLoaded = false;
 
-  if (courseSelect) {
-    courseSelect.innerHTML = '<option value="">Loading courses...</option>';
-    courseSelect.disabled = true;
-  }
   if (startBtn) startBtn.disabled = true;
 
   try {
@@ -2771,20 +2791,12 @@ async function fetchPracticeTopics(forceRefresh = false) {
     console.error('Failed to fetch practice topics:', data);
     practiceTestState.practiceTopicsLoading = false;
     practiceTestState.practiceTopicsLoaded = false;
-    if (courseSelect) {
-      courseSelect.innerHTML = '<option value="">Unable to load courses</option>';
-      courseSelect.disabled = true;
-    }
     if (startBtn) startBtn.disabled = true;
     return null;
   } catch (error) {
     console.error('Failed to fetch practice topics:', error);
     practiceTestState.practiceTopicsLoading = false;
     practiceTestState.practiceTopicsLoaded = false;
-    if (courseSelect) {
-      courseSelect.innerHTML = '<option value="">Unable to load courses</option>';
-      courseSelect.disabled = true;
-    }
     if (startBtn) startBtn.disabled = true;
     return null;
   }
@@ -2798,10 +2810,9 @@ function getSelectedPracticeTopicKeys() {
 
 function updatePracticeStartButtonState() {
   const startBtn = $('practice-start-btn');
-  const courseSelect = $('practice-course-select');
   if (!startBtn) return;
 
-  const selectedCourse = String(courseSelect?.value || '').trim();
+  const selectedCourse = String(practiceTestState.selectedCourse || '').trim();
 
   const selectedTopics = Array.from(
     document.querySelectorAll('input[name="practice-topic"]:checked')
@@ -3279,6 +3290,13 @@ function hasActivePracticeSession() {
 function maybePromptPracticeRecovery() {
   const savedPracticeSnapshot = loadPracticeSessionFromLocal();
   if (!isRecoverablePracticeSession(savedPracticeSnapshot)) return;
+
+  const recoveredCourse = inferPlatformCourseFromPracticeName(savedPracticeSnapshot.selectedCourse);
+  if (recoveredCourse) {
+    selectedPlatformCourseKey = recoveredCourse.key;
+    updateSelectedCourseUi();
+  }
+
   showDashboardView('practice');
   showPracticeQuestionOverlay();
   renderPracticeRecoveryPrompt(savedPracticeSnapshot);
@@ -3352,35 +3370,39 @@ function updatePracticeTopicOptions() {
   renderPracticeSetupTopics(practiceTopics);
 }
 
-function populatePracticeCourseDropdown(topics) {
-  const courseSelect = $('practice-course-select');
-  if (!courseSelect) return;
+function normalizeCourseLabel(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/&/g, 'and')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
 
-  const priorSelectedCourse = String(practiceTestState.selectedCourse || '').trim();
-  const courses = Array.from(new Set(
+function populatePracticeCourseDropdown(topics) {
+  const course = getSelectedPlatformCourse();
+  const messageEl = $('practice-setup-message');
+  const availableCourses = Array.from(new Set(
     (Array.isArray(topics) ? topics : [])
       .map(topic => String(topic.course || '').trim())
       .filter(Boolean)
-  )).sort((a, b) => a.localeCompare(b));
+  ));
 
-  if (!courses.length) {
-    courseSelect.innerHTML = '<option value="">No courses available</option>';
-    courseSelect.disabled = true;
+  if (!course) {
     practiceTestState.selectedCourse = '';
     return;
   }
 
-  courseSelect.innerHTML = '<option value="">Select a course</option>';
-  courses.forEach(course => {
-    const option = document.createElement('option');
-    option.value = course;
-    option.textContent = course;
-    courseSelect.appendChild(option);
-  });
+  const aliases = [course.practiceCourse, course.name, ...(course.practiceAliases || [])]
+    .map(normalizeCourseLabel)
+    .filter(Boolean);
 
-  practiceTestState.selectedCourse = courses.includes(priorSelectedCourse) ? priorSelectedCourse : '';
-  courseSelect.value = practiceTestState.selectedCourse;
-  courseSelect.disabled = false;
+  const match = availableCourses.find(name => aliases.includes(normalizeCourseLabel(name))) || '';
+  practiceTestState.selectedCourse = match;
+
+  if (!match && messageEl) {
+    messageEl.textContent = `No practice quiz topics are currently available for ${course.name}.`;
+  }
 }
 
 async function initializePracticeSetup() {
@@ -3430,9 +3452,9 @@ async function handleStartPracticeClick(event) {
     practiceTestState.correctCount = 0;
     practiceTestState.incorrectCount = 0;
 
-    const selectedCourse = String($('practice-course-select')?.value || '').trim();
+    const selectedCourse = String(practiceTestState.selectedCourse || '').trim();
     if (!selectedCourse) {
-      throw new Error('Please select a course and at least one topic.');
+      throw new Error('No practice quiz course is available for the selected course.');
     }
 
     const selectedTopics = Array.from(document.querySelectorAll('input[name="practice-topic"]:checked'))
@@ -3511,10 +3533,6 @@ async function returnToDashboard() {
 
     resetPracticeDashboardStateFromUI();
 
-    const courseSelect = $('practice-course-select');
-    if (courseSelect) {
-      courseSelect.value = '';
-    }
 
     if (practiceTestState) {
       practiceTestState.selectedCourse = '';
@@ -6616,9 +6634,19 @@ function showScreen(name) {
 }
 
 
-const RESOURCE_COURSES = [
-  { key: 'health-assessment', name: 'Health Assessment' },
-  { key: 'pediatric-nursing', name: 'Pediatric Nursing' }
+const PLATFORM_COURSES = [
+  {
+    key: 'health-assessment',
+    name: 'Health Assessment',
+    practiceCourse: 'Health Assessment',
+    practiceAliases: ['Health Assessment']
+  },
+  {
+    key: 'pediatric-nursing',
+    name: 'Pediatric Nursing',
+    practiceCourse: 'Pediatrics',
+    practiceAliases: ['Pediatrics', 'Pediatric Nursing']
+  }
 ];
 
 // Temporary sample data. This structure is intentionally close to what the
@@ -6644,30 +6672,55 @@ const RESOURCE_SAMPLE_DATA = {
   ]
 };
 
-let selectedResourceCourse = '';
+let selectedPlatformCourseKey = '';
 
-function renderResourceCourseChoices() {
-  const grid = $('resource-course-grid');
-  if (!grid) return;
-
-  grid.innerHTML = '';
-  RESOURCE_COURSES.forEach(course => {
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'resource-course-btn';
-    button.dataset.courseKey = course.key;
-    button.innerHTML = `<span class="resource-course-name">${html(course.name)}</span>`;
-    button.addEventListener('click', () => openResourceCourse(course.key));
-    grid.appendChild(button);
-  });
+function getPlatformCourse(courseKey) {
+  return PLATFORM_COURSES.find(course => course.key === courseKey) || null;
 }
 
-function showResourceCourseSelection() {
-  selectedResourceCourse = '';
-  const selectPanel = $('resource-course-select-panel');
-  const coursePage = $('resource-course-page');
-  if (selectPanel) selectPanel.style.display = 'block';
-  if (coursePage) coursePage.classList.remove('active');
+function getSelectedPlatformCourse() {
+  return getPlatformCourse(selectedPlatformCourseKey);
+}
+
+function inferPlatformCourseFromPracticeName(practiceCourseName) {
+  const target = normalizeCourseLabel(practiceCourseName);
+  if (!target) return null;
+
+  return PLATFORM_COURSES.find(course => {
+    const aliases = [course.practiceCourse, course.name, ...(course.practiceAliases || [])]
+      .map(normalizeCourseLabel)
+      .filter(Boolean);
+    return aliases.includes(target);
+  }) || null;
+}
+
+function updateSelectedCourseUi() {
+  const course = getSelectedPlatformCourse();
+  if (!course) return;
+
+  if ($('course-home-title')) $('course-home-title').textContent = course.name;
+  if ($('practice-view-title')) $('practice-view-title').textContent = `${course.name} Practice Quizzes`;
+  if ($('resource-view-title')) $('resource-view-title').textContent = `${course.name} Resource Library`;
+}
+
+function selectPlatformCourse(courseKey) {
+  const course = getPlatformCourse(courseKey);
+  if (!course) return;
+
+  const courseChanged = selectedPlatformCourseKey && selectedPlatformCourseKey !== course.key;
+  selectedPlatformCourseKey = course.key;
+  updateSelectedCourseUi();
+
+  if (courseChanged || practiceTestState.selectedCourse !== course.practiceCourse) {
+    practiceTestState.selectedCourse = '';
+    practiceTestState.selectedTopics = [];
+    practiceTestState.practiceTopicsLoaded = false;
+    practiceTestState.practiceTopicsLoading = false;
+    if ($('practice-topic-list')) $('practice-topic-list').innerHTML = '';
+    if ($('practice-controls-row')) $('practice-controls-row').hidden = true;
+  }
+
+  showDashboardView('course');
 }
 
 function renderResourceCourseContent(courseKey) {
@@ -6743,25 +6796,10 @@ function renderResourceCourseContent(courseKey) {
   });
 }
 
-function openResourceCourse(courseKey) {
-  const course = RESOURCE_COURSES.find(item => item.key === courseKey);
-  if (!course) return;
-
-  selectedResourceCourse = course.key;
-  const selectPanel = $('resource-course-select-panel');
-  const coursePage = $('resource-course-page');
-  const title = $('resource-course-page-title');
-
-  if (selectPanel) selectPanel.style.display = 'none';
-  if (title) title.textContent = `${course.name} Resources`;
-  renderResourceCourseContent(course.key);
-  if (coursePage) coursePage.classList.add('active');
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-}
-
 function showDashboardView(name) {
   const views = {
     home: $('dashboard-home-view'),
+    course: $('course-home-view'),
     practice: $('practice-view'),
     resources: $('resource-view')
   };
@@ -6775,7 +6813,30 @@ function showDashboardView(name) {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
+function showCourseSelection() {
+  selectedPlatformCourseKey = '';
+  practiceTestState.selectedCourse = '';
+  practiceTestState.selectedTopics = [];
+  showDashboardView('home');
+}
+
+function showCourseHome() {
+  if (!getSelectedPlatformCourse()) {
+    showCourseSelection();
+    return;
+  }
+  updateSelectedCourseUi();
+  showDashboardView('course');
+}
+
 async function openPracticeView() {
+  const course = getSelectedPlatformCourse();
+  if (!course) {
+    showCourseSelection();
+    return;
+  }
+
+  updateSelectedCourseUi();
   showDashboardView('practice');
 
   if (!practiceTestState.practiceTopicsLoaded && !practiceTestState.practiceTopicsLoading) {
@@ -6784,13 +6845,15 @@ async function openPracticeView() {
 }
 
 function openResourceView() {
-  renderResourceCourseChoices();
-  showResourceCourseSelection();
-  showDashboardView('resources');
-}
+  const course = getSelectedPlatformCourse();
+  if (!course) {
+    showCourseSelection();
+    return;
+  }
 
-function showDashboardHome() {
-  showDashboardView('home');
+  updateSelectedCourseUi();
+  renderResourceCourseContent(course.key);
+  showDashboardView('resources');
 }
 
 function renderDashboard(payload) {
@@ -6809,6 +6872,7 @@ function renderDashboard(payload) {
   if ($('module-entry-toggle')) $('module-entry-toggle').setAttribute('aria-expanded', 'false');
   $('assignment-key-input').value = '';
 
+  selectedPlatformCourseKey = '';
   practiceTestState.selectedCourse = '';
   practiceTestState.selectedTopics = [];
   practiceTestState.requestedQuestionCount = 10;
@@ -6817,7 +6881,7 @@ function renderDashboard(payload) {
   $('practice-question-count').value = '10';
   $('practice-setup-message').textContent = '';
   updatePracticeStartButtonState();
-  showDashboardHome();
+  showCourseSelection();
 }
 
 async function loadDashboard() {
@@ -7045,6 +7109,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   $('btn-logout').addEventListener('click', logoutToAuth);
 
+  $('select-health-assessment-btn').addEventListener('click', () => selectPlatformCourse('health-assessment'));
+  $('select-pediatric-nursing-btn').addEventListener('click', () => selectPlatformCourse('pediatric-nursing'));
+  $('change-course-btn').addEventListener('click', showCourseSelection);
+
   $('open-practice-view-btn').addEventListener('click', async () => {
     try {
       await openPracticeView();
@@ -7054,9 +7122,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   $('open-resource-view-btn').addEventListener('click', openResourceView);
-  $('practice-back-home-btn').addEventListener('click', showDashboardHome);
-  $('resource-back-home-btn').addEventListener('click', showDashboardHome);
-  $('resource-back-courses-btn').addEventListener('click', showResourceCourseSelection);
+  $('practice-back-course-btn').addEventListener('click', showCourseHome);
+  $('resource-back-course-btn').addEventListener('click', showCourseHome);
 
   $('module-entry-toggle').addEventListener('click', () => {
     const panel = $('assignment-card');
@@ -7084,14 +7151,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   await startModuleByKey(selectedKey);
 });
-  $('practice-course-select').addEventListener('change', e => {
-    if (!practiceTestState.practiceTopicsLoaded) return;
-    const selectedCourse = String(e.target.value || '').trim();
-    practiceTestState.selectedCourse = selectedCourse;
-    practiceTestState.selectedTopics = [];
-    updatePracticeTopicOptions();
-    updatePracticeStartButtonState();
-  });
   $('practice-question-count').addEventListener('change', e => {
     const value = Number(e.target.value || 10);
     practiceTestState.requestedQuestionCount = [10, 20, 30, 40].includes(value) ? value : 10;
