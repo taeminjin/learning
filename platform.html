@@ -414,10 +414,78 @@
       font-size: 0.92rem;
     }
 
+    .resource-course-select {
+      padding: 4px 0 2px;
+    }
+
+    .resource-course-prompt {
+      margin-bottom: 12px;
+      color: var(--navy);
+      font-size: 1rem;
+      font-weight: 600;
+    }
+
+    .resource-course-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .resource-course-btn {
+      width: 100%;
+      min-height: 96px;
+      padding: 16px 18px;
+      text-align: left;
+      border: 1px solid var(--rule);
+      border-radius: 14px;
+      background: var(--white);
+      color: var(--navy);
+      cursor: pointer;
+      transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .resource-course-btn:hover,
+    .resource-course-btn:focus-visible {
+      transform: translateY(-1px);
+      border-color: var(--gold);
+      box-shadow: 0 8px 20px rgba(16,33,61,0.08);
+      outline: none;
+    }
+
+    .resource-course-name {
+      display: block;
+      font-family: var(--serif);
+      font-size: 1.08rem;
+      font-weight: 700;
+      line-height: 1.25;
+    }
+
+    .resource-course-page {
+      display: none;
+    }
+
+    .resource-course-page.active {
+      display: block;
+    }
+
+    .resource-course-page-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .resource-course-page-title {
+      font-family: var(--serif);
+      font-size: clamp(1.22rem, 3.5vw, 1.55rem);
+      line-height: 1.2;
+    }
+
     .resource-placeholder {
       color: var(--muted);
       text-align: center;
-      padding: 28px 16px;
+      padding: 34px 16px;
     }
 
     @media (max-width: 640px) {
@@ -431,6 +499,14 @@
       }
 
       .dashboard-subview-header {
+        align-items: flex-start;
+      }
+
+      .resource-course-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .resource-course-page-header {
         align-items: flex-start;
       }
     }
@@ -1934,7 +2010,7 @@
       </section>
     </div>
 
-    <!-- Resource library placeholder; content is added in the next build step -->
+    <!-- Resource library -->
     <div id="resource-view" class="dashboard-view">
       <div class="dashboard-subview-header">
         <h2 class="dashboard-subview-title">Resource Library</h2>
@@ -1945,8 +2021,19 @@
         <strong>These resources are optional and supplemental.</strong> They are provided to support your learning and review and are not required course activities.
       </div>
 
-      <section class="dashboard-card">
-        <p class="resource-placeholder">Resource library content will appear here.</p>
+      <section class="dashboard-card" id="resource-course-select-panel">
+        <div class="resource-course-select">
+          <p class="resource-course-prompt">Which course are you interested in?</p>
+          <div class="resource-course-grid" id="resource-course-grid"></div>
+        </div>
+      </section>
+
+      <section class="dashboard-card resource-course-page" id="resource-course-page">
+        <div class="resource-course-page-header">
+          <h3 class="resource-course-page-title" id="resource-course-page-title">Course Resources</h3>
+          <button class="action-btn secondary" id="resource-back-courses-btn" type="button">Change course</button>
+        </div>
+        <p class="resource-placeholder">Resources for this course will appear here.</p>
       </section>
     </div>
 
@@ -6408,6 +6495,52 @@ function showScreen(name) {
 }
 
 
+const RESOURCE_COURSES = [
+  { key: 'health-assessment', name: 'Health Assessment' },
+  { key: 'pediatric-nursing', name: 'Pediatric Nursing' }
+];
+
+let selectedResourceCourse = '';
+
+function renderResourceCourseChoices() {
+  const grid = $('resource-course-grid');
+  if (!grid) return;
+
+  grid.innerHTML = '';
+  RESOURCE_COURSES.forEach(course => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'resource-course-btn';
+    button.dataset.courseKey = course.key;
+    button.innerHTML = `<span class="resource-course-name">${html(course.name)}</span>`;
+    button.addEventListener('click', () => openResourceCourse(course.key));
+    grid.appendChild(button);
+  });
+}
+
+function showResourceCourseSelection() {
+  selectedResourceCourse = '';
+  const selectPanel = $('resource-course-select-panel');
+  const coursePage = $('resource-course-page');
+  if (selectPanel) selectPanel.style.display = 'block';
+  if (coursePage) coursePage.classList.remove('active');
+}
+
+function openResourceCourse(courseKey) {
+  const course = RESOURCE_COURSES.find(item => item.key === courseKey);
+  if (!course) return;
+
+  selectedResourceCourse = course.key;
+  const selectPanel = $('resource-course-select-panel');
+  const coursePage = $('resource-course-page');
+  const title = $('resource-course-page-title');
+
+  if (selectPanel) selectPanel.style.display = 'none';
+  if (title) title.textContent = `${course.name} Resources`;
+  if (coursePage) coursePage.classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
 function showDashboardView(name) {
   const views = {
     home: $('dashboard-home-view'),
@@ -6433,6 +6566,8 @@ async function openPracticeView() {
 }
 
 function openResourceView() {
+  renderResourceCourseChoices();
+  showResourceCourseSelection();
   showDashboardView('resources');
 }
 
@@ -6703,6 +6838,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   $('open-resource-view-btn').addEventListener('click', openResourceView);
   $('practice-back-home-btn').addEventListener('click', showDashboardHome);
   $('resource-back-home-btn').addEventListener('click', showDashboardHome);
+  $('resource-back-courses-btn').addEventListener('click', showResourceCourseSelection);
 
   $('module-entry-toggle').addEventListener('click', () => {
     const panel = $('assignment-card');
