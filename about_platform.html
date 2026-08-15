@@ -65,10 +65,38 @@
       padding: 28px 28px 72px;
     }
 
+    .top-row {
+      display: flex;
+      justify-content: flex-start;
+      margin-bottom: 10px;
+    }
+
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 44px;
+      padding: 8px 12px;
+      border: 1px solid var(--rule);
+      border-radius: 10px;
+      background: rgba(255,255,255,0.72);
+      color: var(--navy-mid);
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 600;
+      transition: background 0.15s ease, border-color 0.15s ease;
+    }
+
+    .back-link:hover,
+    .back-link:focus {
+      background: var(--white);
+      border-color: var(--gold);
+    }
+
     .about-shell {
       display: grid;
       gap: 12px;
-      margin-top: 18px;
+      margin-top: 8px;
     }
 
     .hero-card {
@@ -103,15 +131,11 @@
       max-width: 620px;
     }
 
-    .dashboard-card,
-    .text-card {
+    .dashboard-card {
       background: var(--white);
       border: 1px solid var(--rule);
       border-radius: var(--radius);
       box-shadow: var(--shadow);
-    }
-
-    .dashboard-card {
       padding: 16px 16px 14px;
     }
 
@@ -130,6 +154,33 @@
 
     .dashboard-card p + p {
       margin-top: 10px;
+    }
+
+    .feature-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .feature-box {
+      border: 1px solid var(--rule);
+      border-radius: 10px;
+      background: #f8fbff;
+      padding: 12px 13px;
+    }
+
+    .feature-box strong {
+      display: block;
+      margin-bottom: 4px;
+      color: var(--navy);
+    }
+
+    .feature-box span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.45;
     }
 
     .note-card {
@@ -176,6 +227,10 @@
       .dashboard-card h2 {
         font-size: 0.96rem;
       }
+
+      .feature-grid {
+        grid-template-columns: 1fr;
+      }
     }
   </style>
 </head>
@@ -183,31 +238,52 @@
   <div id="progress-bar"><div id="progress-fill"></div></div>
 
   <div id="app">
+    <div class="top-row">
+      <a class="back-link" href="platform.html">← Back to platform</a>
+    </div>
+
     <main class="about-shell">
       <section class="hero-card">
         <p class="module-label">Student Learning Platform</p>
         <h1 class="hero-title">Why I made this platform</h1>
         <p class="hero-sub">
-          I built this site because I believe retrieval practice and quizzing are some of the best ways to learn.
-          Many students want to quiz themselves more effectively but do not always have an easy way to do that.
-          This platform is meant to make practice simple, fast, and easy to access.
+          I built this site to give you one simple place to study for my courses. It combines practice quizzes
+          with a growing library of supplemental learning resources so you can choose the kind of support that
+          is most useful to you.
         </p>
       </section>
 
       <section class="dashboard-card">
-        <h2>What this platform is for</h2>
+        <h2>What you can do here</h2>
         <p>
-          This site gives you quick access to practice questions for your course. Sign in with your Google account,
-          choose your course, select the systems you want to study, choose how many questions you want, and start practicing.
+          After signing in, choose your course and then decide whether you want to practice with quiz questions
+          or browse the resource library.
         </p>
+
+        <div class="feature-grid">
+          <div class="feature-box">
+            <strong>Practice Quizzes</strong>
+            <span>
+              Build a practice quiz from the topics you want to review and get immediate feedback as you work
+              through the questions.
+            </span>
+          </div>
+
+          <div class="feature-box">
+            <strong>Resource Library</strong>
+            <span>
+              Browse optional flashcards, videos, and other study resources organized by course topic.
+            </span>
+          </div>
+        </div>
       </section>
 
       <div class="divider"></div>
 
       <section class="dashboard-card">
-        <h2>How it works</h2>
+        <h2>How the practice quizzes work</h2>
         <p>
-          Each quiz gives you a random set of questions from the systems you selected. Behind the scenes, the platform
+          Each quiz gives you a random set of questions from the topics you selected. Behind the scenes, the platform
           keeps track of which questions you answered correctly and incorrectly. Questions you miss become more likely
           to show up again, while questions you answer correctly become less likely to repeat. This helps the system
           naturally focus more on what you still need to learn.
@@ -217,10 +293,31 @@
       <div class="divider"></div>
 
       <section class="dashboard-card">
-        <h2>Designed for quick practice</h2>
+        <h2>About the resource library</h2>
         <p>
-          I wanted this to work well on both phones and computers so you can practice whenever you have a few minutes.
-          On a computer, you can also use the number keys to answer more quickly.
+          The resource library is meant to make useful study materials easier to find without requiring you to search
+          through several different sites. Resources are organized by course and topic, with separate sections for
+          things such as flashcards and videos.
+        </p>
+        <p>
+          Everything in the resource library is optional and supplemental. These resources are there to support your
+          learning; they are not required course activities and do not replace the syllabus, course announcements,
+          or materials provided in class.
+        </p>
+        <p>
+          The library is still under construction. I am gradually importing resources from my previous course websites,
+          and the Resource Library page will continue to link you to those sites while that transition is in progress.
+        </p>
+      </section>
+
+      <div class="divider"></div>
+
+      <section class="dashboard-card">
+        <h2>Designed for quick, flexible studying</h2>
+        <p>
+          I wanted the platform to work well on both phones and computers so you can use it whenever you have a few
+          minutes to study. On a computer, the quiz interface also supports keyboard shortcuts to make answering
+          questions faster.
         </p>
       </section>
 
@@ -229,12 +326,17 @@
       <section class="dashboard-card note-card">
         <h2>Please let me know about errors</h2>
         <p>
-          Many of these questions were created with AI and then reviewed by me. I do my best to check them carefully,
-          but there is still a chance that some questions may contain errors or that you may run into technical bugs.
-          If that happens, please use the feedback option to let me know so I can improve the platform.
+          Many of the practice questions were created with AI and then reviewed by me. I do my best to check them
+          carefully, but there is still a chance that a question may contain an error or that you may encounter a
+          technical problem. If that happens, please use the feedback option so I can review it and improve the platform.
         </p>
         <p>
-          Also, the module code section is not in use yet. I plan to add learning modules later, but it is not active right now.
+          You can also report problems with resources, such as broken links or outdated content, as those feedback
+          features are added to the library.
+        </p>
+        <p>
+          The module-code section is not in regular use yet. I plan to use it for additional guided learning modules
+          in the future.
         </p>
       </section>
     </main>
