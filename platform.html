@@ -495,6 +495,41 @@
       font-size: 0.9rem;
     }
 
+    .resource-construction-notice {
+      border: 1px solid #d8c58a;
+      background: #fffaf0;
+      border-radius: 12px;
+      padding: 12px 14px;
+      margin-bottom: 12px;
+      color: var(--navy);
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+
+    .resource-construction-notice strong {
+      display: block;
+      margin-bottom: 3px;
+      font-size: 0.95rem;
+    }
+
+    .resource-construction-notice p {
+      margin: 0;
+    }
+
+    .resource-construction-link {
+      display: inline-block;
+      margin-top: 7px;
+      color: var(--navy-mid);
+      font-weight: 600;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+
+    .resource-construction-link:hover,
+    .resource-construction-link:focus-visible {
+      color: var(--gold);
+    }
+
     .resource-placeholder {
       color: var(--muted);
       text-align: center;
@@ -2196,6 +2231,8 @@
       <div class="resource-notice">
         <strong>These resources are optional and supplemental.</strong> They are provided to support your learning and review and are not required course activities.
       </div>
+
+      <div class="resource-construction-notice" id="resource-construction-notice"></div>
 
       <div class="resource-course-content" id="resource-course-content"></div>
     </div>
@@ -6674,13 +6711,15 @@ const PLATFORM_COURSES = [
     key: 'health-assessment',
     name: 'Health Assessment',
     practiceCourse: 'Health Assessment',
-    practiceAliases: ['Health Assessment']
+    practiceAliases: ['Health Assessment'],
+    legacyResourceUrl: 'https://sites.google.com/apu.edu/jin220/'
   },
   {
     key: 'pediatric-nursing',
     name: 'Pediatric Nursing',
     practiceCourse: 'Pediatrics',
-    practiceAliases: ['Pediatrics', 'Pediatric Nursing']
+    practiceAliases: ['Pediatrics', 'Pediatric Nursing'],
+    legacyResourceUrl: 'https://sites.google.com/apu.edu/404jin/'
   }
 ];
 
@@ -6736,6 +6775,15 @@ function updateSelectedCourseUi() {
   if ($('course-home-title')) $('course-home-title').textContent = course.name;
   if ($('practice-view-title')) $('practice-view-title').textContent = `${course.name} Practice Quizzes`;
   if ($('resource-view-title')) $('resource-view-title').textContent = `${course.name} Resource Library`;
+
+  const constructionNotice = $('resource-construction-notice');
+  if (constructionNotice) {
+    const legacyUrl = String(course.legacyResourceUrl || '').trim();
+    constructionNotice.innerHTML = `
+      <strong>Resource Library Under Construction</strong>
+      <p>I am gradually importing resources from the previous ${html(course.name)} resource site into this platform. In the meantime, you can continue to use the existing site${legacyUrl ? `: <a class="resource-construction-link" href="${html(legacyUrl)}" target="_blank" rel="noopener noreferrer">Open the existing ${html(course.name)} resource site</a>` : '.'}</p>
+    `;
+  }
 }
 
 function selectPlatformCourse(courseKey) {
