@@ -2341,6 +2341,7 @@
 const LOAD_URL = 'https://script.google.com/macros/s/AKfycbyxevT1EWOj_IgdmL2oFiubBWc3b1BC5BnUuCL5-w0PxLjVPE9xsO_m_3RoIgqZ9mvO_A/exec';
 const SUBMIT_URL = LOAD_URL;
 const PRACTICE_API_URL = 'https://script.google.com/macros/s/AKfycbyGXa8KdMd5kYJrkOew56oljtPPNvKpNxMnMf1IsHp2C0XAeth7fP-MDhzPlkhUvPXlpQ/exec';
+const PLATFORM_BUILD = '2026-09-14-realigned-v1';
 const PRACTICE_SESSION_STORAGE_KEY = 'inProgressPracticeSession';
 const GOOGLE_CLIENT_ID = '534534627380-bd6hjuj4ihbf6i7r2qsjnen6cqhm14ma.apps.googleusercontent.com';
 
@@ -3910,10 +3911,10 @@ function renderCurrentPracticeQuestion() {
 
     const itemType = normalizeQuestionType(q.item_type || q.question_type || q.type || "");
 
-  if (itemType === "sba") {
-    renderSBAQuestion(q, index, questions.length);
-  } else if (itemType === "sba_image") {
+  if (itemType === "sba_image" || (itemType === "sba" && String(q.media_url || '').trim())) {
     renderSBAImageQuestion(q, index, questions.length);
+  } else if (itemType === "sba") {
+    renderSBAQuestion(q, index, questions.length);
   } else if (itemType === "fitb") {
     renderFITBQuestion(q, index, questions.length);
   } else if (itemType === "sata") {
@@ -3929,7 +3930,7 @@ function renderCurrentPracticeQuestion() {
           Question ${index + 1} of ${questions.length}
         </div>
         <div style="font-weight:600; margin-bottom:15px;">
-          This temporary renderer only supports SBA right now.
+          This question type is not supported by this version of the practice renderer.
         </div>
         <div style="margin-bottom:14px;">
           Unsupported question type: <strong>${itemType || "(blank)"}</strong>
@@ -5237,6 +5238,36 @@ async function loadTrainingByAssignmentKey(email, assignmentKey) {
 }
 
 
+async function loadTrainingByCode(email, code) {
+  const normalizedEmail = normalizeIdentityValue(email);
+  const normalizedCode = String(code || '').trim();
+  if (!normalizedEmail || !normalizedCode) {
+    throw new Error('Please enter a module code.');
+  }
+
+  const data = await postToAppsScript(LOAD_URL, {
+    action: 'loadTrainingByCode',
+    email: normalizedEmail,
+    code: normalizedCode
+  });
+
+  if (!data || data.ok !== true) {
+    throw new Error(data?.error || 'The server did not return a valid module payload.');
+  }
+
+  if (!Array.isArray(data.rows) || data.rows.length === 0) {
+    throw new Error('No training rows were returned for this module code.');
+  }
+
+  return {
+    rows: data.rows,
+    moduleTitle: data.moduleTitle || moduleTitleText,
+    moduleLabel: data.moduleLabel || moduleLabelText,
+    moduleKey: data.moduleKey || '',
+    participantBadge: data.participantBadge || data.badgeText || normalizedEmail
+  };
+}
+
 // ─────────────────────────────────────────────
 // PROGRESS PERSISTENCE
 // ─────────────────────────────────────────────
@@ -5343,23 +5374,32 @@ function buildStructure(rows) {
 }
 
 function buildCardsForSection(rows) {
-  const allSlots = [...new Set(rows.map(r => parseInt(r.slot, 10)).filter(n => !Number.isNaN(n)))].sort((a,b)=>a-b);
+  const allSlots = [...new Set(rows.map(r => parseInt(r.slot, 10)).filter(n => !Number.isNaN(n)))].sort((a, b) => a - b);
+
   return allSlots.map(slot => {
-    const slotRows = rows.filter(r => parseInt(r.slot, 10) === slot).sort((a,b) => (a._rowIndex || 0) - (b._rowIndex || 0));
+    const slotRows = rows
+      .filter(r => parseInt(r.slot, 10) === slot)
+      .sort((a, b) => (a._rowIndex || 0) - (b._rowIndex || 0));
+
     const first = slotRows[0] || {};
     const type = String(first.type || '').trim();
+    const correctBlob = first.correct_blob != null ? first.correct_blob : (first.answers_blob || '');
+    const distractorsBlob = first.distractors_blob != null ? first.distractors_blob : (first.options_blob || '');
+    const stem = first.stem != null ? first.stem : (first.prompt || '');
+    const feedback = first.feedback != null ? first.feedback : (first.rationale || '');
+
     return {
       type,
       slot,
       header: first.header || '',
       body: first.body || '',
       mediaUrl: first.media_url || '',
-      prompt: first.prompt || '',
-      options: splitBlob(first.options_blob),
-      answers: splitBlob(first.answers_blob),
-      categoryMappings: parseCategoryMappings(first.answers_blob),
-      feedback: first.feedback || first.rationale || '',
-      rationale: first.feedback || first.rationale || '',
+      prompt: stem || '',
+      options: splitBlob(distractorsBlob),
+      answers: splitBlob(correctBlob),
+      categoryMappings: parseCategoryMappings(correctBlob),
+      feedback: feedback || '',
+      rationale: feedback || '',
       settings: parseSettings(first.settings)
     };
   });
@@ -5647,6 +5687,16 @@ function markModuleQuestionSubmitted(state, isCorrect) {
   persistProgress();
 }
 
+function markModuleUngradedSubmitted(state) {
+  if (!state.submitted && isQuestionCardType(state.type)) {
+    totalQuestions++;
+  }
+  state.submitted = true;
+  state.wasCorrect = null;
+  interactionTimes.push(Date.now());
+  persistProgress();
+}
+
 function adaptModuleCardToPracticeQuestion(item, sectionIndex) {
   const type = normalizeQuestionType(item.type || '');
   const mappings = Array.isArray(item.categoryMappings) ? item.categoryMappings : [];
@@ -5700,7 +5750,7 @@ function renderModuleQuestionCard(item, sectionIndex, onComplete) {
   block.id = `section-${sectionIndex}`;
 
   if (!question.stem) {
-    return renderIncompleteCard(item, sectionIndex, onComplete, 'Question card is missing prompt.');
+    return renderIncompleteCard(item, sectionIndex, onComplete, 'Question card is missing stem.');
   }
 
   const renderFrame = (inner) => {
@@ -5877,6 +5927,31 @@ function renderModuleQuestionCard(item, sectionIndex, onComplete) {
         const isCorrect = selectedNorm.length === correctNorm.length && selectedNorm.every((v, idx) => v === correctNorm[idx]);
         state.selectedAnswers = selected;
         markModuleQuestionSubmitted(state, isCorrect);
+        replaceCard(block, renderModuleQuestionCard(item, sectionIndex, onComplete));
+      });
+    }
+    return block;
+  }
+
+  if (type === 'essay') {
+    renderFrame(`
+      <div id="practice-stem" class="practice-stem">${html(question.stem)}</div>
+      <button id="practice-stem-toggle" class="practice-stem-toggle" style="display:none;" type="button">Expand case</button>
+      <div style="margin-top:10px;">
+        <textarea class="reflection-input module-essay-input" placeholder="Type your response..." ${state.submitted ? 'disabled' : ''}>${html(state.text || '')}</textarea>
+      </div>
+      ${!state.submitted ? '<div style="margin-top:10px;"><button type="button" class="action-btn module-essay-submit">Submit response</button></div>' : ''}
+      <div class="practice-feedback" style="margin-top:8px;">
+        ${state.submitted ? `<div class="poll-ack">Your response was saved.</div>${buildPracticeRationaleHtml(question.rationale)}` : ''}
+      </div>
+    `);
+    initializePracticeStemToggle(block);
+    if (!state.submitted) {
+      block.querySelector('.module-essay-submit')?.addEventListener('click', () => {
+        const text = String(block.querySelector('.module-essay-input')?.value || '').trim();
+        if (!text) return;
+        state.text = text;
+        markModuleUngradedSubmitted(state);
         replaceCard(block, renderModuleQuestionCard(item, sectionIndex, onComplete));
       });
     }
@@ -6368,7 +6443,9 @@ function buildModuleResponseValues() {
       const state = quizStates?.[globalCardIndex] || {};
       let value = '';
 
-      if (isQuestionCardType(type)) {
+      if (type === 'essay') {
+        value = state?.submitted && typeof state?.text === 'string' ? state.text.trim() : '';
+      } else if (isQuestionCardType(type)) {
         value = state?.submitted ? (state?.wasCorrect ? 1 : 0) : '';
       } else if (type === 'poll') {
         if (Array.isArray(state?.selected)) value = state.selected.join(' | ');
@@ -6723,28 +6800,7 @@ const PLATFORM_COURSES = [
   }
 ];
 
-// Temporary sample data. This structure is intentionally close to what the
-// Google Sheet will eventually provide: course -> sections -> resources.
-const RESOURCE_SAMPLE_DATA = {
-  'health-assessment': [],
-  'pediatric-nursing': [
-    {
-      title: 'Growth and Development',
-      resources: [
-        { title: 'Most important milestones', type: 'Flashcards' },
-        { title: 'Moderately important milestones', type: 'Flashcards' },
-        { title: 'Less (but still) important milestones', type: 'Flashcards' }
-      ]
-    },
-    {
-      title: 'Pediatric Respiratory Dysfunction',
-      resources: [
-        { title: 'Pediatric Respiratory Dysfunction', type: 'Flashcards' },
-        { title: 'Cystic Fibrosis', type: 'Videos', duration: '16 minutes' }
-      ]
-    }
-  ]
-};
+const resourceCacheByCourse = new Map();
 
 let selectedPlatformCourseKey = '';
 
@@ -6806,20 +6862,44 @@ function selectPlatformCourse(courseKey) {
   showDashboardView('course');
 }
 
-function renderResourceCourseContent(courseKey) {
+async function loadResourcesForCourse(courseName, { forceRefresh = false } = {}) {
+  const normalizedCourse = String(courseName || '').trim();
+  if (!normalizedCourse) return [];
+
+  if (!forceRefresh && resourceCacheByCourse.has(normalizedCourse)) {
+    return resourceCacheByCourse.get(normalizedCourse);
+  }
+
+  const data = await postToAppsScript(PRACTICE_API_URL, {
+    action: 'getResources',
+    course: normalizedCourse
+  }, {
+    retries: 1,
+    retryDelayMs: 800,
+    timeoutMs: 15000
+  });
+
+  if (!data || data.ok !== true) {
+    throw new Error(data?.error || 'Unable to load resources.');
+  }
+
+  const sections = Array.isArray(data.sections) ? data.sections : [];
+  resourceCacheByCourse.set(normalizedCourse, sections);
+  return sections;
+}
+
+function renderResourceCourseContent(sections) {
   const content = $('resource-course-content');
   if (!content) return;
 
-  const sections = Array.isArray(RESOURCE_SAMPLE_DATA[courseKey])
-    ? RESOURCE_SAMPLE_DATA[courseKey]
-    : [];
+  const safeSections = Array.isArray(sections) ? sections : [];
 
-  if (!sections.length) {
-    content.innerHTML = '<p class="resource-placeholder">Resources for this course will appear here.</p>';
+  if (!safeSections.length) {
+    content.innerHTML = '<p class="resource-placeholder">No resources have been added for this course yet.</p>';
     return;
   }
 
-  content.innerHTML = sections.map(section => {
+  content.innerHTML = safeSections.map(section => {
     const resources = Array.isArray(section.resources) ? section.resources : [];
     const groupedResources = new Map();
 
@@ -6839,7 +6919,7 @@ function renderResourceCourseContent(courseKey) {
         const disabledAttr = hasUrl ? '' : ' disabled';
         const titleAttr = hasUrl
           ? `Open ${html(resource.title)}`
-          : 'Link will be added when the resource library is connected to Google Sheets.';
+          : 'This resource does not have a link yet.';
 
         return `
           <button class="resource-item-card" type="button"${disabledAttr} title="${titleAttr}" data-resource-url="${html(resource.url || '')}">
@@ -6865,7 +6945,7 @@ function renderResourceCourseContent(courseKey) {
     return `
       <section class="resource-section">
         <header class="resource-section-header">
-          <h4 class="resource-section-title">${html(section.title)}</h4>
+          <h4 class="resource-section-title">${html(section.title || section.topic_label || 'Resources')}</h4>
         </header>
         ${resourceGroups}
       </section>
@@ -6927,7 +7007,7 @@ async function openPracticeView() {
   }
 }
 
-function openResourceView() {
+async function openResourceView() {
   const course = getSelectedPlatformCourse();
   if (!course) {
     showCourseSelection();
@@ -6935,8 +7015,21 @@ function openResourceView() {
   }
 
   updateSelectedCourseUi();
-  renderResourceCourseContent(course.key);
   showDashboardView('resources');
+
+  const content = $('resource-course-content');
+  if (content) {
+    content.innerHTML = '<div class="resource-placeholder"><span class="practice-loading-inline"><span class="practice-loading-spinner" aria-hidden="true"></span>Loading resources…</span></div>';
+  }
+
+  try {
+    const sections = await loadResourcesForCourse(course.name);
+    renderResourceCourseContent(sections);
+  } catch (err) {
+    if (content) {
+      content.innerHTML = `<p class="resource-placeholder">${html(getFriendlyNetworkMessage(err))}</p>`;
+    }
+  }
 }
 
 function renderDashboard(payload) {
@@ -7157,6 +7250,61 @@ async function startModuleByAssignmentKey() {
   }
 }
 
+async function startModuleByCode() {
+  const moduleCode = String($('assignment-key-input').value || '').trim();
+  $('dashboard-error').textContent = '';
+  if (!moduleCode) {
+    $('dashboard-error').textContent = 'Please enter a module code.';
+    return;
+  }
+
+  showScreen('loading');
+  try {
+    const payload = await loadTrainingByCode(currentUserEmail, moduleCode);
+    const resolvedModuleKey = String(payload.moduleKey || '').trim();
+    if (!resolvedModuleKey) throw new Error('The module code did not return a module key.');
+
+    const saved = findSavedProgressForModule(resolvedModuleKey);
+    let savedState = null;
+
+    moduleKey = resolvedModuleKey;
+    participantEmail = currentUserEmail;
+    participantCode = resolvedModuleKey;
+
+    if (saved) {
+      if (saved.hasSuccessfulSubmission === true || saved.completionReached === true) {
+        clearSavedProgress();
+        resetModuleState();
+      } else {
+        const choice = await askResumeChoice();
+        if (choice === 'continue') {
+          sessionId = saved.sessionId;
+          sessionStart = saved.sessionStart;
+          totalQuestions = saved.totalQuestions || 0;
+          correctFirst = saved.correctFirst || 0;
+          events = saved.events || [];
+          interactionTimes.length = 0;
+          interactionTimes.push(...(saved.interactionTimes || []));
+          completionReached = !!saved.completionReached;
+          hasSuccessfulSubmission = !!saved.hasSuccessfulSubmission;
+          quizStates = saved.quizStates || {};
+          savedState = saved;
+        } else {
+          clearSavedProgress();
+          resetModuleState();
+        }
+      }
+    } else {
+      resetModuleState();
+    }
+
+    await launchModuleFromPayload(payload, resolvedModuleKey, savedState);
+  } catch (err) {
+    showScreen('dashboard');
+    $('dashboard-error').textContent = err.message || 'Unable to load module.';
+  }
+}
+
 async function handleSaveAndExit() {
   persistProgress();
   trainingActive = false;
@@ -7187,6 +7335,7 @@ function logoutToAuth() {
 // BOOT
 // ─────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
+  console.info('Learning Platform build:', PLATFORM_BUILD);
   $('last-updated').textContent = document.lastModified;
   bindPracticeKeyboardShortcuts();
 
@@ -7204,7 +7353,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  $('open-resource-view-btn').addEventListener('click', openResourceView);
+  $('open-resource-view-btn').addEventListener('click', async () => {
+    try {
+      await openResourceView();
+    } catch (err) {
+      $('dashboard-error').textContent = getFriendlyNetworkMessage(err);
+    }
+  });
   $('practice-back-course-btn').addEventListener('click', showCourseHome);
   $('resource-back-course-btn').addEventListener('click', showCourseHome);
 
@@ -7224,16 +7379,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
   $('assignment-key-btn').addEventListener('click', async () => {
-  const selectedKey = String($('assignment-key-input').value || '').trim();
-  $('dashboard-error').textContent = '';
-
-  if (!selectedKey) {
-    $('dashboard-error').textContent = 'Please enter a module code.';
-    return;
-  }
-
-  await startModuleByKey(selectedKey);
-});
+    await startModuleByCode();
+  });
+  $('assignment-key-input').addEventListener('keydown', async event => {
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+    await startModuleByCode();
+  });
   $('practice-question-count').addEventListener('change', e => {
     const value = Number(e.target.value || 10);
     practiceTestState.requestedQuestionCount = [10, 20, 30, 40].includes(value) ? value : 10;
