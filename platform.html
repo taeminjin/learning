@@ -148,6 +148,26 @@
       max-width: 520px;
     }
 
+    .service-notice {
+      max-width: 540px;
+      margin: 0 auto 18px;
+      padding: 11px 13px;
+      border: 1px solid #d8c58a;
+      border-radius: 10px;
+      background: #fffaf0;
+      color: #4d4a3f;
+      font-size: 0.86rem;
+      line-height: 1.45;
+      text-align: left;
+    }
+
+    .service-notice a {
+      color: var(--navy-mid);
+      font-weight: 600;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+
     .gate-form {
       display: flex;
       gap: 8px;
@@ -2095,6 +2115,10 @@
       <h1 class="gate-title">Jin's Student Learning Platform</h1>
       <p class="gate-sub">Sign in with Google using your APU account.</p>
 
+      <div class="service-notice" role="note">
+        I’m aware of occasional loading or connection issues and apologize for the inconvenience. If the platform gets stuck, please give it a moment and refresh the page; refreshing a few times will usually resolve the issue. If the problem continues, please contact me at <a href="mailto:tjin@apu.edu">tjin@apu.edu</a>.
+      </div>
+
       <div id="google-signin-wrap">
         <div id="google-signin-button"></div>
       </div>
@@ -2341,7 +2365,7 @@
 const LOAD_URL = 'https://script.google.com/macros/s/AKfycbyxevT1EWOj_IgdmL2oFiubBWc3b1BC5BnUuCL5-w0PxLjVPE9xsO_m_3RoIgqZ9mvO_A/exec';
 const SUBMIT_URL = LOAD_URL;
 const PRACTICE_API_URL = 'https://script.google.com/macros/s/AKfycbyGXa8KdMd5kYJrkOew56oljtPPNvKpNxMnMf1IsHp2C0XAeth7fP-MDhzPlkhUvPXlpQ/exec';
-const PLATFORM_BUILD = '2026-09-14-realigned-v1';
+const PLATFORM_BUILD = '2026-09-16-reliability-v2';
 const PRACTICE_SESSION_STORAGE_KEY = 'inProgressPracticeSession';
 const GOOGLE_CLIENT_ID = '534534627380-bd6hjuj4ihbf6i7r2qsjnen6cqhm14ma.apps.googleusercontent.com';
 
@@ -2695,11 +2719,39 @@ function normalizeIdentityValue(value) {
   return String(value || '').trim().toLowerCase();
 }
 
+const DEFAULT_API_TIMEOUT_MS = 30000;
+const DEFAULT_API_RETRIES = 2;
+
+function makeRequestError(message, extras = {}) {
+  const error = new Error(message || 'request_failed');
+  Object.assign(error, extras);
+  return error;
+}
+
+function isRetryableRequestError(error) {
+  const message = String(error?.message || '').toLowerCase();
+  const status = Number(error?.status || 0);
+
+  return Boolean(
+    error?.retryable === true ||
+    error?.name === 'AbortError' ||
+    message.includes('signal is aborted') ||
+    message.includes('failed to fetch') ||
+    message.includes('networkerror') ||
+    message.includes('network error') ||
+    message.includes('invalid_json_response') ||
+    status === 408 ||
+    status === 425 ||
+    status === 429 ||
+    (status >= 500 && status <= 599)
+  );
+}
+
 async function postToAppsScript(url, payload, options = {}) {
   const {
-    retries = 1,
+    retries = DEFAULT_API_RETRIES,
     retryDelayMs = 800,
-    timeoutMs = 15000,
+    timeoutMs = DEFAULT_API_TIMEOUT_MS,
     onRetry = null
   } = options;
 
@@ -2707,7 +2759,13 @@ async function postToAppsScript(url, payload, options = {}) {
 
   for (let attempt = 0; attempt <= retries; attempt++) {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    const timeoutId = setTimeout(() => {
+      try {
+        controller.abort(new DOMException('Request timed out', 'AbortError'));
+      } catch (_) {
+        controller.abort();
+      }
+    }, timeoutMs);
 
     try {
       const response = await fetch(url, {
@@ -2718,33 +2776,45 @@ async function postToAppsScript(url, payload, options = {}) {
         signal: controller.signal
       });
 
-      clearTimeout(timeoutId);
-
       const text = await response.text();
       let data = null;
 
       try {
         data = JSON.parse(text);
       } catch (_) {
-        throw new Error('invalid_json_response');
+        console.warn('Apps Script returned a non-JSON response.', {
+          action: payload?.action || '',
+          status: response.status,
+          preview: String(text || '').slice(0, 180)
+        });
+        throw makeRequestError('invalid_json_response', {
+          status: response.status,
+          retryable: true
+        });
       }
 
       if (!response.ok) {
-        throw new Error(data?.error || `HTTP ${response.status}`);
+        throw makeRequestError(data?.error || `HTTP ${response.status}`, {
+          status: response.status,
+          retryable: response.status === 408 || response.status === 425 || response.status === 429 || response.status >= 500
+        });
+      }
+
+      // Apps Script web apps usually return HTTP 200 even when our server code
+      // reports an application error. A server-marked transient error should be
+      // retried here instead of forcing the student to refresh manually.
+      if (data?.ok === false && data?.retryable === true) {
+        throw makeRequestError(data?.error || 'Temporary server problem.', {
+          retryable: true
+        });
       }
 
       return data;
     } catch (err) {
-      clearTimeout(timeoutId);
       lastError = err;
-
       const isLastAttempt = attempt === retries;
-      const isNetworkLikeError =
-        err?.name === 'AbortError' ||
-        err?.message === 'Failed to fetch' ||
-        err?.message === 'NetworkError when attempting to fetch resource.';
 
-      if (isLastAttempt || !isNetworkLikeError) {
+      if (isLastAttempt || !isRetryableRequestError(err)) {
         throw lastError;
       }
 
@@ -2752,7 +2822,11 @@ async function postToAppsScript(url, payload, options = {}) {
         onRetry({ attempt: attempt + 1, retries, error: err });
       }
 
-      await new Promise(resolve => setTimeout(resolve, retryDelayMs));
+      const backoffMs = retryDelayMs * Math.pow(2, attempt);
+      const jitterMs = Math.floor(Math.random() * 250);
+      await new Promise(resolve => setTimeout(resolve, backoffMs + jitterMs));
+    } finally {
+      clearTimeout(timeoutId);
     }
   }
 
@@ -2761,11 +2835,15 @@ async function postToAppsScript(url, payload, options = {}) {
 
 function getFriendlyNetworkMessage(error) {
   if (!error) return 'Something went wrong. Please try again.';
-  if (error.name === 'AbortError') return 'Connection timed out. Please try again.';
-  if (String(error.message || '').includes('Failed to fetch')) {
-    return 'Connection hiccup. Please try again.';
+  const message = String(error.message || '');
+  const lower = message.toLowerCase();
+  if (error.name === 'AbortError' || lower.includes('signal is aborted')) {
+    return 'The server took longer than expected to respond. Please try again.';
   }
-  return error.message || 'Something went wrong. Please try again.';
+  if (lower.includes('invalid_json_response') || lower.includes('failed to fetch') || lower.includes('networkerror') || lower.includes('network error')) {
+    return 'There was a temporary connection problem. Please try again.';
+  }
+  return message || 'Something went wrong. Please try again.';
 }
 
 
@@ -2830,9 +2908,9 @@ async function fetchPracticeTopics(forceRefresh = false) {
 
   try {
     const data = await postToAppsScript(PRACTICE_API_URL, { action: 'getPracticeTopics' }, {
-      retries: 1,
+      retries: 2,
       retryDelayMs: 1000,
-      timeoutMs: 15000
+      timeoutMs: 30000
     });
 
     if (data?.ok) {
@@ -3751,9 +3829,9 @@ async function startPracticeSessionWithSettings(selectedTopics, questionCount) {
       topics,
       question_count: count
     }, {
-      retries: 1,
+      retries: 2,
       retryDelayMs: 1000,
-      timeoutMs: 15000
+      timeoutMs: 30000
     });
     if (!data || data.ok !== true) {
       throw new Error(data?.error || 'Unable to load practice questions.');
@@ -4063,7 +4141,7 @@ async function submitPracticeResultsAndUpdateDashboard(options = {}) {
     if (showAlertOnError) {
       alert('Failed to submit practice results.');
     }
-    return { ok: false, error: err.message || 'Failed to submit practice results.' };
+    return { ok: false, error: getFriendlyNetworkMessage(err) || 'Failed to submit practice results.' };
   }
 }
 
@@ -5298,8 +5376,13 @@ function saveLocalProgress() {
   } catch (_) {}
 }
 
-async function syncProgressToServer() {
-  if (!participantEmail || !moduleKey) return;
+const PROGRESS_SYNC_DEBOUNCE_MS = 3500;
+let progressSyncTimer = null;
+let progressSyncInFlight = null;
+let progressSyncQueued = false;
+
+function buildProgressPayload() {
+  if (!participantEmail || !moduleKey) return null;
 
   const progressPercent = totalSlots > 0
     ? Math.round((completedSlots.size / totalSlots) * 100)
@@ -5308,23 +5391,86 @@ async function syncProgressToServer() {
   const currentSectionLabel =
     allSections?.[progressionSectionIndex]?.title || '';
 
+  return {
+    action: 'saveProgress',
+    email: participantEmail,
+    module_key: moduleKey,
+    progress_percent: progressPercent,
+    last_section: currentSectionLabel,
+    completed: completionReached
+  };
+}
+
+async function syncProgressToServer() {
+  const payload = buildProgressPayload();
+  if (!payload) return { ok: true, skipped: true };
+
   try {
-    await postToAppsScript(LOAD_URL, {
-      action: 'saveProgress',
-      email: participantEmail,
-      module_key: moduleKey,
-      progress_percent: progressPercent,
-      last_section: currentSectionLabel,
-      completed: completionReached
+    const data = await postToAppsScript(LOAD_URL, payload, {
+      retries: 2,
+      retryDelayMs: 900,
+      timeoutMs: 30000
     });
+
+    if (!data || data.ok !== true) {
+      throw new Error(data?.error || 'Progress save failed.');
+    }
+
+    return data;
   } catch (err) {
-    console.warn('Progress sync failed:', err);
+    // Local storage already contains the latest state, so a temporary server
+    // failure should not interrupt the student. The next progress event or
+    // Save and exit will try again.
+    console.warn('Progress sync failed; local progress is still saved:', err);
+    return { ok: false, error: err?.message || 'Progress sync failed.' };
   }
 }
 
-async function persistProgress() {
+function scheduleProgressSync(delayMs = PROGRESS_SYNC_DEBOUNCE_MS) {
+  if (!participantEmail || !moduleKey) return;
+  if (progressSyncTimer) clearTimeout(progressSyncTimer);
+
+  progressSyncTimer = setTimeout(() => {
+    progressSyncTimer = null;
+    flushProgressToServer();
+  }, delayMs);
+}
+
+async function flushProgressToServer() {
+  if (progressSyncTimer) {
+    clearTimeout(progressSyncTimer);
+    progressSyncTimer = null;
+  }
+
+  if (progressSyncInFlight) {
+    progressSyncQueued = true;
+    return progressSyncInFlight;
+  }
+
+  progressSyncInFlight = syncProgressToServer();
+
+  try {
+    return await progressSyncInFlight;
+  } finally {
+    progressSyncInFlight = null;
+
+    if (progressSyncQueued) {
+      progressSyncQueued = false;
+      scheduleProgressSync(250);
+    }
+  }
+}
+
+function persistProgress(options = {}) {
+  const immediate = options?.immediate === true;
   saveLocalProgress();
-  await syncProgressToServer();
+
+  if (immediate) {
+    return flushProgressToServer();
+  }
+
+  scheduleProgressSync();
+  return Promise.resolve({ ok: true, scheduled: true });
 }
 
 function loadSavedProgress() {
@@ -6695,9 +6841,9 @@ async function handleGoogleCredentialResponse(response) {
       action: 'verifyGoogleLogin',
       id_token: idToken
     }, {
-      retries: 1,
+      retries: 2,
       retryDelayMs: 1000,
-      timeoutMs: 15000,
+      timeoutMs: 30000,
       onRetry: () => setAuthStatus('Connection hiccup. Retrying…')
     });
 
@@ -6723,7 +6869,7 @@ async function handleGoogleCredentialResponse(response) {
     if (err?.message === 'Failed to fetch' || err?.name === 'AbortError') {
       setAuthStatus('Could not reach the server. Please try again.', true);
     } else {
-      setAuthStatus(err.message || 'Sign in failed. Please try again.', true);
+      setAuthStatus(getFriendlyNetworkMessage(err), true);
     }
   }
 }
@@ -6874,9 +7020,9 @@ async function loadResourcesForCourse(courseName, { forceRefresh = false } = {})
     action: 'getResources',
     course: normalizedCourse
   }, {
-    retries: 1,
+    retries: 2,
     retryDelayMs: 800,
-    timeoutMs: 15000
+    timeoutMs: 30000
   });
 
   if (!data || data.ok !== true) {
@@ -7190,7 +7336,7 @@ async function startModuleByKey(selectedModuleKey) {
     await launchModuleFromPayload(payload, selectedKey, savedState);
   } catch (err) {
     showScreen('dashboard');
-    $('dashboard-error').textContent = `Failed to load module: ${err.message}`;
+    $('dashboard-error').textContent = `Failed to load module: ${getFriendlyNetworkMessage(err)}`;
     logEvent('content_load_failed', { error: String(err.message), module_key: selectedKey });
   }
 }
@@ -7246,7 +7392,7 @@ async function startModuleByAssignmentKey() {
     await launchModuleFromPayload(payload, assignedKey, savedState);
   } catch (err) {
     showScreen('dashboard');
-    $('dashboard-error').textContent = err.message || 'Unable to load assignment.';
+    $('dashboard-error').textContent = getFriendlyNetworkMessage(err) || 'Unable to load assignment.';
   }
 }
 
@@ -7301,12 +7447,12 @@ async function startModuleByCode() {
     await launchModuleFromPayload(payload, resolvedModuleKey, savedState);
   } catch (err) {
     showScreen('dashboard');
-    $('dashboard-error').textContent = err.message || 'Unable to load module.';
+    $('dashboard-error').textContent = getFriendlyNetworkMessage(err) || 'Unable to load module.';
   }
 }
 
 async function handleSaveAndExit() {
-  persistProgress();
+  await persistProgress({ immediate: true });
   trainingActive = false;
   showScreen('dashboard');
   await loadDashboard();
@@ -7534,7 +7680,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       currentUserEmail = '';
       currentUserName = '';
       isAuthenticated = false;
-      setAuthStatus(`Session restore failed: ${err.message}`, true);
+      setAuthStatus(`Session restore failed: ${getFriendlyNetworkMessage(err)}`, true);
       showScreen('auth');
       initializeGoogleSignIn();
     }
