@@ -2100,6 +2100,19 @@
       }
     }
 
+  
+    [hidden] { display: none !important; }
+    #module-entry-wrap { width: 100%; }
+    #module-browser { border: 1px solid var(--rule); border-radius: 16px; padding: 22px; width: min(640px, calc(100% - 28px)); max-height: 85dvh; margin: auto; color: var(--navy); background: var(--white); font-family: var(--sans); }
+    #module-browser::backdrop { background: rgba(16,33,61,.5); }
+    .module-browser-heading, .module-browser-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+    .module-browser-filters { display: grid; gap: 12px; margin: 18px 0; }
+    .module-browser-row { border-top: 1px solid var(--rule); padding: 16px 0; }
+    .module-browser-row h3 { font-size: 1.1rem; }
+    .module-browser-row p, #module-browser-count { font-size: .95rem; color: var(--muted); }
+    .module-browser-row .action-btn { flex-shrink: 0; }
+    #module-entry-status { color: var(--red); font-size: .95rem; }
+    @media (max-width: 440px) { .module-browser-row { align-items: flex-start; flex-direction: column; gap: 8px; } }
   </style>
 </head>
 <body>
@@ -2153,16 +2166,18 @@
 
       <div class="module-entry-wrap" id="module-entry-wrap">
         <button class="module-entry-toggle" id="module-entry-toggle" type="button" aria-expanded="false" aria-controls="assignment-card">
-          Have a module code? <span>Open a module</span>
+          <span>Open a learning module</span>
         </button>
 
-        <section class="dashboard-card" id="assignment-card" hidden>
-          <h3>Enter Module Code</h3>
+        <section class="dashboard-card" id="assignment-card">
+          <h3>Open a learning module</h3>
           <p style="font-size:0.85rem; color:var(--muted); margin: 4px 0 10px;">Enter the code provided by your instructor to open an assigned module.</p>
           <div class="assignment-entry-row">
-            <input class="gate-input" id="assignment-key-input" type="text" placeholder="Enter module code" autocomplete="off" autocapitalize="none" spellcheck="false" />
+            <input class="gate-input" id="assignment-key-input" aria-label="Module code" type="text" placeholder="Enter module code" autocomplete="off" autocapitalize="none" spellcheck="false" />
             <button class="action-btn" type="button" id="assignment-key-btn">Open module</button>
           </div>
+          <button type="button" class="module-entry-toggle" id="browse-modules-btn"><span>Browse modules</span></button>
+          <p id="module-entry-status" role="status" aria-live="polite"></p>
         </section>
       </div>
     </div>
@@ -2322,6 +2337,17 @@
 </div>
 
 <!-- IMAGE LIGHTBOX -->
+
+<dialog id="module-browser" aria-labelledby="module-browser-title">
+  <div class="module-browser-heading"><h2 id="module-browser-title">Browse modules</h2><button class="action-btn secondary" type="button" id="module-browser-close">Close</button></div>
+  <div class="module-browser-filters">
+    <label>Search by title or topic<input id="module-browser-search" class="gate-input" type="search" placeholder="Search modules" /></label>
+    <label>Course<select id="module-browser-course" class="gate-input"></select></label>
+  </div>
+  <p id="module-browser-count" role="status" aria-live="polite"></p>
+  <div id="module-browser-list"></div>
+</dialog>
+
 <div id="img-lightbox" role="dialog" aria-modal="true" aria-label="Image zoom">
   <button id="img-lightbox-close" aria-label="Close">&times;</button>
   <img id="img-lightbox-img" src="" alt="" />
@@ -2876,6 +2902,8 @@ function saveCachedPracticeTopics(topics) {
     const safeTopics = Array.isArray(topics) ? topics : [];
     localStorage.setItem(PRACTICE_TOPICS_CACHE_KEY, JSON.stringify({
       savedAt: Date.now(),
+    sessionId: practiceTestState.sessionId || "",
+    startedAt: practiceTestState.startedAt || null,
       topics: safeTopics
     }));
   } catch (err) {
@@ -2998,6 +3026,7 @@ function isElementVisible(element) {
 }
 
 function isDesktopKeyboardPracticeContext() {
+  if ($('module-browser')?.open || document.activeElement?.closest('#module-entry-wrap')) return false;
   const questionContainer = document.getElementById('practice-question-container');
   const currentQuestion = getCurrentPracticeQuestion();
   const supportsDesktopPointer = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
@@ -3343,6 +3372,8 @@ function isRecoverablePracticeSession(snapshot) {
 }
 
 function restorePracticeSessionFromSnapshot(snapshot) {
+  practiceTestState.sessionId = snapshot.sessionId || practiceTestState.sessionId || "";
+  practiceTestState.startedAt = snapshot.startedAt || practiceTestState.startedAt || null;
   practiceTestState.selectedCourse = snapshot.selectedCourse || '';
   practiceTestState.selectedTopics = Array.isArray(snapshot.selectedTopics) ? snapshot.selectedTopics : [];
   practiceTestState.questionCount = Number(snapshot.questionCount || 0);
@@ -3745,6 +3776,7 @@ function showPracticeQuestionOverlay() {
 
   questionContainer.style.display = 'block';
   fullscreen.style.display = 'flex';
+  positionModuleEntry('practice', true);
 }
 
 function hidePracticeQuestionOverlay() {
@@ -3764,6 +3796,7 @@ function hidePracticeQuestionOverlay() {
   }
 
   fullscreen.style.display = 'none';
+  positionModuleEntry('practice');
   questionContainer.style.display = 'block';
   questionContainer.innerHTML = '';
 }
@@ -7105,6 +7138,102 @@ function renderResourceCourseContent(sections) {
   });
 }
 
+
+// One shared module entry panel follows the active dashboard screen.
+function positionModuleEntry(view, inQuiz = false) {
+  const wrap = $('module-entry-wrap');
+  const host = inQuiz ? document.querySelector('.full-screen-question-card') :
+    $({home: 'dashboard-home-view', course: 'course-home-view', practice: 'practice-view', resources: 'resource-view'}[view]);
+  if (!wrap || !host) return;
+  host.appendChild(wrap);
+  wrap.style.display = assignmentEntryEnabled ? 'block' : 'none';
+  $('module-entry-toggle').hidden = view === 'home';
+  $('assignment-card').hidden = view !== 'home';
+  $('module-entry-toggle').setAttribute('aria-expanded', view === 'home' ? 'true' : 'false');
+}
+
+function moduleCourseName(value) {
+  const raw = String(value || '').trim();
+  const lower = raw.toLowerCase();
+  const course = PLATFORM_COURSES.find(c => [c.key, c.name, c.practiceCourse, ...c.practiceAliases].some(alias => alias.toLowerCase() === lower));
+  return course ? course.name : raw;
+}
+
+function listedModules() {
+  const seen = new Set();
+  return availableModules.filter(m => {
+    const key = String(m.module_key || '').trim();
+    const hidden = [false, 0, 'false', '0', 'no'].includes(typeof m.show_in_module_list === 'string' ? m.show_in_module_list.trim().toLowerCase() : m.show_in_module_list);
+    if (!key || hidden || seen.has(key)) return false;
+    seen.add(key); return true;
+  }).sort((a,b) => String(a.module_title || a.module_key).localeCompare(String(b.module_title || b.module_key)));
+}
+
+function openModuleBrowser() {
+  const selected = getSelectedPlatformCourse()?.name || '';
+  const names = [...new Set([...PLATFORM_COURSES.map(c => c.name), ...listedModules().map(m => moduleCourseName(m.course)).filter(Boolean)])];
+  $('module-browser-course').innerHTML = '<option value="">All courses</option>' + names.map(name => `<option value="${html(name)}">${html(name)}</option>`).join('');
+  $('module-browser-course').value = selected;
+  $('module-browser-search').value = '';
+  renderModuleBrowser();
+  $('module-browser').showModal();
+  $('module-browser-search').focus();
+}
+
+function renderModuleBrowser() {
+  const query = $('module-browser-search').value.trim().toLowerCase();
+  const course = $('module-browser-course').value;
+  const all = listedModules();
+  const matches = all.filter(m => (!course || moduleCourseName(m.course) === course) &&
+    `${m.module_title || ''} ${m.module_subtitle || ''} ${m.course || ''} ${m.module_key || ''}`.toLowerCase().includes(query));
+  $('module-browser-count').textContent = matches.length ? `${matches.length} module${matches.length === 1 ? '' : 's'}` :
+    (all.length ? 'No matching modules. Try another search or choose All courses.' : 'No modules are listed yet. You can still open a module using a code.');
+  const list = $('module-browser-list');
+  list.replaceChildren();
+  matches.forEach(m => {
+    const row = document.createElement('div'); row.className = 'module-browser-row';
+    row.innerHTML = `<div><h3>${html(m.module_title || m.module_key)}</h3><p>${html(moduleCourseName(m.course))}</p><p>${html(m.module_subtitle || '')}</p></div>`;
+    const button = document.createElement('button'); button.type = 'button'; button.className = 'action-btn'; button.textContent = 'Open';
+    button.setAttribute('aria-label', `Open ${m.module_title || m.module_key}`);
+    button.addEventListener('click', () => openModuleFromEntry(m.module_key));
+    row.appendChild(button); list.appendChild(row);
+  });
+}
+
+let moduleEntryLaunching = false;
+async function openModuleFromEntry(key = '') {
+  if (moduleEntryLaunching) return;
+  const code = $('assignment-key-input').value.trim();
+  if (!key && !code) {
+    $('module-entry-status').textContent = 'Please enter a module code.';
+    $('assignment-key-input').focus(); return;
+  }
+  moduleEntryLaunching = true;
+  $('module-entry-status').textContent = '';
+  $('assignment-key-btn').disabled = true;
+  try {
+    // Preserve both submitted answers and the current question before leaving practice.
+    if (hasActivePracticeSession()) {
+      const saveStarted = Date.now();
+      savePracticeSessionToLocal();
+      const saved = loadPracticeSessionFromLocal();
+      if (!saved || saved.savedAt < saveStarted || saved.sessionId !== (practiceTestState.sessionId || '')) {
+        throw new Error('Unable to save your practice quiz. Please finish it before opening a module.');
+      }
+    }
+    if ($('module-browser').open) $('module-browser').close();
+    if ($('full-screen-question').style.display !== 'none') hidePracticeQuestionOverlay();
+    if (key) await startModuleByKey(key);
+    else await startModuleByCode();
+  } catch (err) {
+    if ($('module-browser').open) $('module-browser').close();
+    $('module-entry-status').textContent = err.message || 'Unable to open module.';
+  } finally {
+    moduleEntryLaunching = false;
+    $('assignment-key-btn').disabled = false;
+  }
+}
+
 function showDashboardView(name) {
   const views = {
     home: $('dashboard-home-view'),
@@ -7118,6 +7247,7 @@ function showDashboardView(name) {
     el.classList.toggle('active', key === name);
   });
 
+  positionModuleEntry(name);
   if ($('dashboard-error')) $('dashboard-error').textContent = '';
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -7183,6 +7313,7 @@ function renderDashboard(payload) {
   $('dashboard-error').textContent = '';
 
   practiceModules = Array.isArray(payload.practice_modules) ? payload.practice_modules : [];
+  availableModules = Array.isArray(payload.module_catalog) ? payload.module_catalog : practiceModules;
   assignmentEntryEnabled = payload.assignment_entry_enabled !== false;
   currentUserName = user.name || currentUserName;
   currentUserEmail = normalizeIdentityValue(user.email || currentUserEmail);
@@ -7509,6 +7640,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   $('practice-back-course-btn').addEventListener('click', showCourseHome);
   $('resource-back-course-btn').addEventListener('click', showCourseHome);
 
+  $('browse-modules-btn').addEventListener('click', openModuleBrowser);
+  $('module-browser-close').addEventListener('click', () => $('module-browser').close());
+  $('module-browser-search').addEventListener('input', renderModuleBrowser);
+  $('module-browser-course').addEventListener('change', renderModuleBrowser);
   $('module-entry-toggle').addEventListener('click', () => {
     const panel = $('assignment-card');
     const toggle = $('module-entry-toggle');
@@ -7525,12 +7660,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
   $('assignment-key-btn').addEventListener('click', async () => {
-    await startModuleByCode();
+    await openModuleFromEntry();
   });
   $('assignment-key-input').addEventListener('keydown', async event => {
     if (event.key !== 'Enter') return;
     event.preventDefault();
-    await startModuleByCode();
+    await openModuleFromEntry();
   });
   $('practice-question-count').addEventListener('change', e => {
     const value = Number(e.target.value || 10);
