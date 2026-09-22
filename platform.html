@@ -2542,7 +2542,13 @@ function parseSettings(value) {
   return out;
 }
 
-function parseCategoryMappings(blob) {
+// Normalize both mapped-question formats into { item, category } objects:
+//   categorization: Category::Item
+//   matching:       Item::Match
+// Categorization keeps the documented N/A special cases:
+//   Unrelated Item::N/A and N/A::Distractor Category
+function parseCategoryMappings(blob, questionType = 'categorization') {
+  const normalizedType = normalizeQuestionType(questionType || 'categorization');
   return String(blob || '')
     .replace(/\r\n?/g, '\n')
     .split('\n')
@@ -2552,8 +2558,24 @@ function parseCategoryMappings(blob) {
       const dividerIndex = part.indexOf('::');
       if (dividerIndex === -1) return null;
 
-      const item = part.slice(0, dividerIndex).trim();
-      const category = part.slice(dividerIndex + 2).trim();
+      const left = part.slice(0, dividerIndex).trim();
+      const right = part.slice(dividerIndex + 2).trim();
+
+      let item;
+      let category;
+      if (normalizedType === 'matching') {
+        item = left;
+        category = right;
+      } else if (isNAValue(left)) {
+        item = left;
+        category = right;
+      } else if (isNAValue(right)) {
+        item = left;
+        category = right;
+      } else {
+        item = right;
+        category = left;
+      }
 
       if (!item || !category) return null;
       if (isNAValue(item) && isNAValue(category)) return null;
@@ -2563,11 +2585,11 @@ function parseCategoryMappings(blob) {
 }
 
 function parseCategorizeMappings(blob) {
-  return parseCategoryMappings(blob);
+  return parseCategoryMappings(blob, 'categorization');
 }
 
-function getCategorizeMappingsAndCategories(blob) {
-  const mappings = parseCategoryMappings(blob);
+function getCategorizeMappingsAndCategories(blob, questionType = 'categorization') {
+  const mappings = parseCategoryMappings(blob, questionType);
   return {
     mappings,
     categories: [...new Set(mappings.map(mapping => mapping.category).filter(category => !isNAValue(category)))],
@@ -4614,7 +4636,8 @@ function renderCategorizeQuestion(q, index, total) {
   const container = document.getElementById("practice-question-container");
   if (!container) return;
 
-  const { mappings, categories: uniqueCategories, items } = getCategorizeMappingsAndCategories(q.correct_blob);
+  const questionKind = normalizeQuestionType(q.item_type || q.question_type || q.type || 'categorization');
+  const { mappings, categories: uniqueCategories, items } = getCategorizeMappingsAndCategories(q.correct_blob, questionKind);
 
   const shuffledItems = items.slice();
   for (let i = shuffledItems.length - 1; i > 0; i--) {
@@ -4623,7 +4646,6 @@ function renderCategorizeQuestion(q, index, total) {
   }
 
   const isMobileMode = window.matchMedia("(max-width: 700px)").matches;
-  const questionKind = normalizeQuestionType(q.item_type || q.question_type || q.type || 'categorization');
   const isMatching = questionKind === 'matching';
   const helperText = isMobileMode
     ? (isMatching
@@ -5576,7 +5598,7 @@ function buildCardsForSection(rows) {
       prompt: stem || '',
       options: splitBlob(distractorsBlob),
       answers: splitBlob(correctBlob),
-      categoryMappings: parseCategoryMappings(correctBlob),
+      categoryMappings: parseCategoryMappings(correctBlob, normalizeQuestionType(type || 'categorization')),
       feedback: feedback || '',
       rationale: feedback || '',
       settings: parseSettings(first.settings)
@@ -5879,7 +5901,11 @@ function markModuleUngradedSubmitted(state) {
 function adaptModuleCardToPracticeQuestion(item, sectionIndex) {
   const type = normalizeQuestionType(item.type || '');
   const mappings = Array.isArray(item.categoryMappings) ? item.categoryMappings : [];
-  const mappingBlob = mappings.map(m => `${m.item}::${m.category}`).join('\n');
+  const mappingBlob = mappings.map(m =>
+    type === 'matching'
+      ? `${m.item}::${m.category}`
+      : `${m.category}::${m.item}`
+  ).join('\n');
   const correctBlobByType = {
     sba: item.answers?.[0] || '',
     sba_image: item.answers?.[0] || '',
@@ -6139,7 +6165,7 @@ function renderModuleQuestionCard(item, sectionIndex, onComplete) {
 
   if (type === 'categorization' || type === 'matching') {
     const isMatching = type === 'matching';
-    const { mappings, categories, items: categoryItems } = getCategorizeMappingsAndCategories(question.correct_blob);
+    const { mappings, categories, items: categoryItems } = getCategorizeMappingsAndCategories(question.correct_blob, type);
     if (!mappings.length) return renderIncompleteCard(item, sectionIndex, onComplete, isMatching ? 'Matching card is missing answer mappings.' : 'Categorization card is missing answer mappings.');
     const allItems = categoryItems;
     const poolTitle = isMatching ? 'Items / no match' : 'Items / no category';
