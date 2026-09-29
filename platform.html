@@ -2510,12 +2510,11 @@ function normalizeQuestionType(value) {
   const compact = raw.replace(/[\s_-]+/g, '');
 
   if (['sba', 'singlebestanswer', 'singlebest'].includes(compact)) return 'sba';
-  if (['sbaimage', 'singlebestanswerimage'].includes(compact)) return 'sba_image';
   if (['sata', 'selectallthatapply'].includes(compact)) return 'sata';
-  if (['fitb', 'fitbtext', 'fitbdropdown', 'fillintheblank', 'richfillblank'].includes(compact)) return 'fitb';
-  if (['categorization', 'categorize', 'category', 'categories'].includes(compact)) return 'categorization';
-  if (['matching', 'match'].includes(compact)) return 'matching';
-  if (['essay', 'shortanswer'].includes(compact)) return 'essay';
+  if (['fitb', 'fillintheblank', 'richfillblank'].includes(compact)) return 'fitb';
+  if (['categorization'].includes(compact)) return 'categorization';
+  if (['matching'].includes(compact)) return 'matching';
+  if (['essay'].includes(compact)) return 'essay';
 
   return raw;
 }
@@ -2542,60 +2541,60 @@ function parseSettings(value) {
   return out;
 }
 
-// Normalize both mapped-question formats into { item, category } objects:
-//   categorization: Category::Item
-//   matching:       Item::Match
-// Categorization keeps the documented N/A special cases:
-//   Unrelated Item::N/A and N/A::Distractor Category
-function parseCategoryMappings(blob, questionType = 'categorization') {
-  const normalizedType = normalizeQuestionType(questionType || 'categorization');
-  return String(blob || '')
+function parseMappingPairs(blob, type = 'categorization') {
+  const questionType = normalizeQuestionType(type || 'categorization');
+  const lines = String(blob || '')
     .replace(/\r\n?/g, '\n')
     .split('\n')
     .map(part => part.trim())
-    .filter(Boolean)
-    .map(part => {
-      const dividerIndex = part.indexOf('::');
-      if (dividerIndex === -1) return null;
-
-      const left = part.slice(0, dividerIndex).trim();
-      const right = part.slice(dividerIndex + 2).trim();
-
-      let item;
-      let category;
-      if (normalizedType === 'matching') {
-        item = left;
-        category = right;
-      } else if (isNAValue(left)) {
-        item = left;
-        category = right;
-      } else if (isNAValue(right)) {
-        item = left;
-        category = right;
-      } else {
-        item = right;
-        category = left;
-      }
-
-      if (!item || !category) return null;
-      if (isNAValue(item) && isNAValue(category)) return null;
-      return { item, category };
-    })
     .filter(Boolean);
+
+  const mappings = [];
+  const categories = [];
+  const items = [];
+
+  lines.forEach(part => {
+    const pieces = part.split('::');
+    if (pieces.length !== 2) return;
+
+    const left = pieces[0].trim();
+    const right = pieces[1].trim();
+    if (!left || !right) return;
+    if (isNAValue(left) && isNAValue(right)) return;
+
+    if (questionType === 'matching') {
+      // Canonical dissertation format: Item::Match.
+      if (!isNAValue(right) && !categories.includes(right)) categories.push(right);
+      if (!isNAValue(left)) {
+        if (!items.includes(left)) items.push(left);
+        mappings.push({ item: left, category: right });
+      }
+      return;
+    }
+
+    // Canonical dissertation format for categorization: Category::Item.
+    if (!isNAValue(left) && !categories.includes(left)) categories.push(left);
+    if (!isNAValue(right)) {
+      if (!items.includes(right)) items.push(right);
+      mappings.push({ item: right, category: left });
+    }
+  });
+
+  return { mappings, categories, items };
 }
 
-function parseCategorizeMappings(blob) {
-  return parseCategoryMappings(blob, 'categorization');
+function parseCategoryMappings(blob, type = 'categorization') {
+  return parseMappingPairs(blob, type).mappings;
 }
 
-function getCategorizeMappingsAndCategories(blob, questionType = 'categorization') {
-  const mappings = parseCategoryMappings(blob, questionType);
-  return {
-    mappings,
-    categories: [...new Set(mappings.map(mapping => mapping.category).filter(category => !isNAValue(category)))],
-    items: [...new Set(mappings.map(mapping => mapping.item).filter(item => !isNAValue(item)))]
-  };
+function parseCategorizeMappings(blob, type = 'categorization') {
+  return parseMappingPairs(blob, type).mappings;
 }
+
+function getCategorizeMappingsAndCategories(blob, type = 'categorization') {
+  return parseMappingPairs(blob, type);
+}
+
 function normalizeBool(value) {
   return ['true', 'yes', '1'].includes(String(value || '').trim().toLowerCase());
 }
@@ -3085,7 +3084,7 @@ function bindPracticeKeyboardShortcuts() {
     if (!question) return;
 
     const itemType = normalizeQuestionType(question.item_type || question.question_type || question.type || '');
-    if (!['sba', 'sba_image', 'sata'].includes(itemType)) return;
+    if (!['sba', 'sata'].includes(itemType)) return;
 
     const key = String(event.key || '');
     const isDigitShortcut = ['1', '2', '3', '4', '5'].includes(key);
@@ -3096,7 +3095,7 @@ function bindPracticeKeyboardShortcuts() {
     const nextBtn = document.getElementById('practice-next-btn');
     const feedbackShowing = isElementVisible(nextWrap);
 
-    if (itemType === 'sba' || itemType === 'sba_image') {
+    if (itemType === 'sba') {
       if (isDigitShortcut) {
         const buttons = [...document.querySelectorAll('.practice-answer-btn')].filter(isElementVisible);
         const targetBtn = buttons[Number(key) - 1];
@@ -3271,13 +3270,21 @@ function renderPracticeFeedbackAnswerStateForCurrentQuestion() {
 
   const questionType = normalizeQuestionType(question.item_type || question.question_type || question.type || '');
 
-  if (questionType === 'sba' || questionType === 'sba_image') {
+  if (questionType === 'sba') {
     handlePracticeAnswer(question, answerState.selected || '', answerState.correct || '', answerState.feedback || answerState.rationale || '');
     return;
   }
 
   if (questionType === 'fitb') {
-    handlePracticeFITBAnswer(question, answerState.selected || '', answerState.correct || '', answerState.feedback || answerState.rationale || '');
+    const selectedAnswers = Array.isArray(answerState.selectedAnswers)
+      ? answerState.selectedAnswers
+      : (answerState.selected ? [answerState.selected] : []);
+    handlePracticeFITBAnswer(
+      question,
+      selectedAnswers,
+      parseFitbAnswerGroups(question.correct_blob || ''),
+      answerState.feedback || answerState.rationale || ''
+    );
     return;
   }
 
@@ -3291,10 +3298,10 @@ function renderPracticeFeedbackAnswerStateForCurrentQuestion() {
     return;
   }
 
-  if (questionType === 'categorization') {
-    const container = document.getElementById("practice-question-container");
+  if (questionType === 'categorization' || questionType === 'matching') {
+    const container = document.getElementById('practice-question-container');
     if (!container) return;
-    const mappings = parseCategorizeMappings(question.correct_blob);
+    const mappings = parseCategorizeMappings(question.correct_blob, questionType);
     const placements = Array.isArray(answerState.placements) ? answerState.placements : [];
     if (!placements.length) return;
     handlePracticeCategorizeAnswer(question, container, mappings, placements, answerState.feedback || answerState.rationale || '');
@@ -4044,7 +4051,7 @@ function renderCurrentPracticeQuestion() {
 
     const itemType = normalizeQuestionType(q.item_type || q.question_type || q.type || "");
 
-  if (itemType === "sba_image" || (itemType === "sba" && String(q.media_url || '').trim())) {
+  if (itemType === "sba" && String(q.media_url || '').trim()) {
     renderSBAImageQuestion(q, index, questions.length);
   } else if (itemType === "sba") {
     renderSBAQuestion(q, index, questions.length);
@@ -4433,40 +4440,46 @@ function renderFITBQuestion(q, index, total) {
   if (!container) return;
 
   const stateKey = getPracticeQuestionStateKey(q);
-  const acceptedAnswers = parseAcceptedFitbAnswers(q.correct_blob || '');
-  const stemHtml = buildFITBStemHtml(q.stem, acceptedAnswers);
+  const answerGroups = parseFitbAnswerGroups(q.correct_blob || '');
+  const stemHtml = buildFITBStemHtml(q.stem);
+  const blankCount = (String(q.stem || '').match(/`([^`]+)`/g) || []).length;
+  const inputCount = Math.max(blankCount, answerGroups.length, 1);
+
+  const savedRaw = stateKey ? practiceTestState.answers?.[stateKey] : [];
+  const savedAnswers = Array.isArray(savedRaw)
+    ? savedRaw
+    : (typeof savedRaw === 'string' && savedRaw ? [savedRaw] : []);
 
   container.innerHTML = `
     <div class="practice-question-card">
+      <div class="practice-meta">Question ${index + 1} of ${total}</div>
 
-      <div class="practice-meta">
-        Question ${index + 1} of ${total}
-      </div>
-
-      <div id="practice-stem" class="practice-stem">
-        ${stemHtml}
-      </div>
+      <div id="practice-stem" class="practice-stem">${stemHtml}</div>
 
       <button id="practice-stem-toggle" class="practice-stem-toggle" style="display:none;">
         Expand case
       </button>
 
-      <div style="margin-top:10px;">
-        <input
-          type="text"
-          id="practice-fitb-input"
-          class="gate-input"
-          placeholder="Type your answer"
-          autocomplete="off"
-          autocapitalize="off"
-          spellcheck="false"
-        />
+      <div class="practice-fitb-inputs" style="margin-top:10px; display:grid; gap:10px;">
+        ${Array.from({ length: inputCount }, (_, blankIndex) => `
+          <label style="display:grid; gap:5px;">
+            ${inputCount > 1 ? `<span style="font-size:0.82rem; color:#5f718f;">Blank ${blankIndex + 1}</span>` : ''}
+            <input
+              type="text"
+              class="gate-input practice-fitb-input"
+              data-fitb-index="${blankIndex}"
+              placeholder="${inputCount > 1 ? `Answer for blank ${blankIndex + 1}` : 'Type your answer'}"
+              value="${html(savedAnswers[blankIndex] || '')}"
+              autocomplete="off"
+              autocapitalize="off"
+              spellcheck="false"
+            />
+          </label>
+        `).join('')}
       </div>
 
       <div style="margin-top:10px;">
-        <button type="button" class="action-btn" id="practice-fitb-submit">
-          Check Answer
-        </button>
+        <button type="button" class="action-btn" id="practice-fitb-submit">Check Answer</button>
       </div>
 
       <div id="practice-feedback" style="margin-top:8px;"></div>
@@ -4476,50 +4489,40 @@ function renderFITBQuestion(q, index, total) {
           ${index < total - 1 ? "Next Question" : "Finish"}
         </button>
       </div>
-
     </div>
   `;
 
   initializePracticeStemToggle(container);
 
-  const input = container.querySelector("#practice-fitb-input");  const submitBtn = container.querySelector("#practice-fitb-submit");
+  const inputs = [...container.querySelectorAll('.practice-fitb-input')];
+  const submitBtn = container.querySelector('#practice-fitb-submit');
 
-  if (input) {
-    const savedAnswer = stateKey ? practiceTestState.answers?.[stateKey] : '';
-    if (typeof savedAnswer === 'string' && savedAnswer) {
-      input.value = savedAnswer;
-    }
-    input.addEventListener("blur", () => {
-      input.value = input.value.trim();
-      if (stateKey) {
-        practiceTestState.answers[stateKey] = input.value;
-        savePracticeSessionToLocal();
-      }
-    });
-  }
-
-  if (submitBtn) {
-    submitBtn.addEventListener("click", () => {
-      const selected = input ? input.value.trim() : "";
-      practiceTestState.answers[stateKey] = selected;
+  const saveAnswers = () => {
+    const values = inputs.map(input => String(input.value || '').trim());
+    if (stateKey) {
+      practiceTestState.answers[stateKey] = values;
       savePracticeSessionToLocal();
-      handlePracticeFITBAnswer(
-        q,
-        selected,
-        acceptedAnswers,
-        getQuestionFeedback(q)
-      );
-    });
-  }
+    }
+    return values;
+  };
 
-  if (input) {
-    input.addEventListener("keydown", event => {
-      if (event.key === "Enter") {
+  inputs.forEach(input => {
+    input.addEventListener('blur', () => {
+      input.value = input.value.trim();
+      saveAnswers();
+    });
+    input.addEventListener('keydown', event => {
+      if (event.key === 'Enter') {
         event.preventDefault();
         submitBtn?.click();
       }
     });
-  }
+  });
+
+  submitBtn?.addEventListener('click', () => {
+    const selectedAnswers = saveAnswers();
+    handlePracticeFITBAnswer(q, selectedAnswers, answerGroups, getQuestionFeedback(q));
+  });
 }
 
 function renderSATAQuestion(q, index, total) {
@@ -5009,65 +5012,55 @@ function handlePracticeAnswer(question, selected, correct, rationale) {
   }
 }
 
-function handlePracticeFITBAnswer(question, selected, correctInput, rationale) {
+function handlePracticeFITBAnswer(question, selectedAnswers, answerGroupsInput, rationale) {
   const container = document.getElementById("practice-question-container");
   if (!container) return;
 
   const stateKey = getPracticeQuestionStateKey(question);
+  const inputs = [...container.querySelectorAll('.practice-fitb-input')];
+  const submitBtn = container.querySelector('#practice-fitb-submit');
+  const feedback = container.querySelector('#practice-feedback');
 
-  const feedback = container.querySelector("#practice-feedback");
-  const input = container.querySelector("#practice-fitb-input");
-  const submitBtn = container.querySelector("#practice-fitb-submit");
+  const answerGroups = Array.isArray(answerGroupsInput) && Array.isArray(answerGroupsInput[0])
+    ? answerGroupsInput
+    : parseFitbAnswerGroups(question.correct_blob || '');
+  const selected = Array.isArray(selectedAnswers) ? selectedAnswers : [selectedAnswers];
+  const displayedCorrect = getDisplayedFitbAnswers(answerGroups);
+  const isCorrect = areFitbAnswersCorrect(selected, answerGroups);
 
-  const acceptedAnswers = Array.isArray(correctInput)
-    ? correctInput
-    : parseAcceptedFitbAnswers(correctInput);
-  const displayedCorrect = getDisplayedFitbAnswer(acceptedAnswers);
-  const isCorrect = isFitbAnswerCorrect(selected, acceptedAnswers);
-
-  if (input) {
+  inputs.forEach((input, idx) => {
+    const thisCorrect = isFitbAnswerCorrect(selected[idx] || '', answerGroups[idx] || []);
     input.disabled = true;
-    input.style.opacity = "0.8";
-    input.style.border = isCorrect ? "2px solid #166534" : "2px solid #991b1b";
-  }
+    input.style.opacity = '0.8';
+    input.style.border = thisCorrect ? '2px solid #166534' : '2px solid #991b1b';
+  });
 
   if (submitBtn) {
     submitBtn.disabled = true;
-    submitBtn.style.opacity = "0.75";
+    submitBtn.style.opacity = '0.75';
   }
 
   if (feedback) {
-    if (isCorrect) {
-      feedback.innerHTML = `
-        <div style="margin-top:6px; padding:12px 14px; border-radius:10px; background:#dcfce7; border:1px solid #166534; color:#14532d;">
-          <strong>Correct ✅</strong>
-        </div>
-        ${buildPracticeRationaleHtml(rationale)}
-      `;
-    } else {
-      feedback.innerHTML = `
-        <div style="margin-top:6px; padding:12px 14px; border-radius:10px; background:#fef2f2; border:1px solid #991b1b; color:#991b1b;">
-          <strong>Incorrect ❌</strong><br>
-          Correct answer: ${displayedCorrect}
-        </div>
-        ${buildPracticeRationaleHtml(rationale)}
-      `;
-    }
+    const correctText = displayedCorrect.length <= 1
+      ? `Correct answer: ${html(displayedCorrect[0] || '')}`
+      : displayedCorrect.map((answer, idx) => `Blank ${idx + 1}: ${html(answer)}`).join('<br>');
+
+    feedback.innerHTML = `
+      ${buildPracticeStyledResultHtml(isCorrect, isCorrect ? '' : correctText)}
+      ${buildPracticeRationaleHtml(rationale)}
+    `;
   }
 
-  const nextWrap = container.querySelector("#practice-next-wrap");
-  const nextBtn = container.querySelector("#practice-next-btn");
-
-  if (nextWrap) {
-    nextWrap.style.display = "block";
-  }
+  const nextWrap = container.querySelector('#practice-next-wrap');
+  const nextBtn = container.querySelector('#practice-next-btn');
+  if (nextWrap) nextWrap.style.display = 'block';
 
   recordPracticeQuestionResult(question, isCorrect);
   if (stateKey) {
     practiceTestState.answerState[stateKey] = {
-      type: normalizeQuestionType(question.item_type || question.question_type || question.type || 'fitb'),
-      selected,
-      correct: acceptedAnswers.join('|'),
+      type: 'fitb',
+      selectedAnswers: selected,
+      correctGroups: answerGroups,
       feedback: rationale || '',
       rationale: rationale || '',
       feedbackShown: true
@@ -5076,7 +5069,7 @@ function handlePracticeFITBAnswer(question, selected, correctInput, rationale) {
   savePracticeSessionToLocal();
 
   if (nextBtn) {
-    nextBtn.addEventListener("click", advancePracticeQuestion, { once: true });
+    nextBtn.addEventListener('click', advancePracticeQuestion, { once: true });
   }
 }
 
@@ -5584,10 +5577,11 @@ function buildCardsForSection(rows) {
 
     const first = slotRows[0] || {};
     const type = String(first.type || '').trim();
-    const correctBlob = first.correct_blob != null ? first.correct_blob : (first.answers_blob || '');
-    const distractorsBlob = first.distractors_blob != null ? first.distractors_blob : (first.options_blob || '');
+    const correctBlob = first.correct_blob != null ? String(first.correct_blob) : String(first.answers_blob || '');
+    const distractorsBlob = first.distractors_blob != null ? String(first.distractors_blob) : String(first.options_blob || '');
     const stem = first.stem != null ? first.stem : (first.prompt || '');
     const feedback = first.feedback != null ? first.feedback : (first.rationale || '');
+    const settingsRaw = first.settings == null ? '' : String(first.settings);
 
     return {
       type,
@@ -5596,12 +5590,15 @@ function buildCardsForSection(rows) {
       body: first.body || '',
       mediaUrl: first.media_url || '',
       prompt: stem || '',
+      correctBlob,
+      distractorsBlob,
+      settingsRaw,
       options: splitBlob(distractorsBlob),
       answers: splitBlob(correctBlob),
-      categoryMappings: parseCategoryMappings(correctBlob, normalizeQuestionType(type || 'categorization')),
+      categoryMappings: parseCategoryMappings(correctBlob, type),
       feedback: feedback || '',
       rationale: feedback || '',
-      settings: parseSettings(first.settings)
+      settings: parseSettings(settingsRaw)
     };
   });
 }
@@ -5770,7 +5767,6 @@ function isQuestionCardType(type) {
   const t = normalizeQuestionType(type);
   return [
     'sba',
-    'sba_image',
     'sata',
     'fitb',
     'categorization',
@@ -5805,49 +5801,43 @@ function normalizeGradedText(value) {
     .trim();
 }
 
-function parseAcceptedFitbAnswers(raw) {
-  const seenNormalized = new Set();
+function parseFitbAnswerGroups(raw) {
   return String(raw || '')
-    .split('|')
-    .map(value => String(value || '').trim())
-    .filter(Boolean)
-    .filter(value => {
-      const normalized = normalizeGradedText(value);
-      if (!normalized || seenNormalized.has(normalized)) return false;
-      seenNormalized.add(normalized);
-      return true;
-    });
+    .replace(/\r\n?/g, '\n')
+    .trim()
+    .split(/\s*\|\|\s*/g)
+    .map(group => {
+      const seen = new Set();
+      return String(group || '')
+        .split('|')
+        .map(value => String(value || '').trim())
+        .filter(Boolean)
+        .filter(value => {
+          const normalized = normalizeGradedText(value);
+          if (!normalized || seen.has(normalized)) return false;
+          seen.add(normalized);
+          return true;
+        });
+    })
+    .filter(group => group.length > 0);
+}
+
+function parseAcceptedFitbAnswers(raw) {
+  // Backward-compatible helper for code that expects a single answer group.
+  return parseFitbAnswerGroups(raw)[0] || [];
 }
 
 function escapeRegExp(value) {
   return String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-function buildFITBStemHtml(rawStem, acceptedAnswers = []) {
+function buildFITBStemHtml(rawStem) {
   const source = String(rawStem || '');
-  const blankHtml = '<span class="fitb-blank" aria-label="blank">_____________________</span>';
-
-  // Primary convention: hide anything wrapped in backticks.
-  if (/`([^`]+)`/.test(source)) {
-    return html(source).replace(/`([^`]+)`/g, blankHtml);
-  }
-
-  // Fallback: if the answer appears in the stem without backticks, hide the first matching accepted answer.
-  const answers = (Array.isArray(acceptedAnswers) ? acceptedAnswers : parseAcceptedFitbAnswers(acceptedAnswers))
-    .map(answer => String(answer || '').trim())
-    .filter(Boolean)
-    .sort((a, b) => b.length - a.length);
-
-  for (const answer of answers) {
-    const pattern = new RegExp(escapeRegExp(answer), 'i');
-    if (pattern.test(source)) {
-      const sentinel = '%%FITB_BLANK%%';
-      const masked = source.replace(pattern, sentinel);
-      return html(masked).replace(sentinel, blankHtml);
-    }
-  }
-
-  return html(source);
+  let blankIndex = 0;
+  return html(source).replace(/`([^`]+)`/g, () => {
+    blankIndex += 1;
+    return `<span class="fitb-blank" aria-label="blank ${blankIndex}">__________</span>`;
+  });
 }
 
 function isFitbAnswerCorrect(userAnswer, acceptedAnswers) {
@@ -5857,9 +5847,20 @@ function isFitbAnswerCorrect(userAnswer, acceptedAnswers) {
     .some(answer => normalizeGradedText(answer) === userNormalized);
 }
 
+function areFitbAnswersCorrect(userAnswers, answerGroups) {
+  const answers = Array.isArray(userAnswers) ? userAnswers : [userAnswers];
+  const groups = Array.isArray(answerGroups) ? answerGroups : [];
+  if (!groups.length || answers.length !== groups.length) return false;
+  return groups.every((group, index) => isFitbAnswerCorrect(answers[index] || '', group));
+}
+
 function getDisplayedFitbAnswer(acceptedAnswers) {
   if (!Array.isArray(acceptedAnswers)) return '';
   return acceptedAnswers.find(answer => String(answer || '').trim()) || '';
+}
+
+function getDisplayedFitbAnswers(answerGroups) {
+  return (Array.isArray(answerGroups) ? answerGroups : []).map(group => getDisplayedFitbAnswer(group));
 }
 
 function buildPracticeStyledResultHtml(isCorrect, correctAnswerText = '') {
@@ -5900,39 +5901,27 @@ function markModuleUngradedSubmitted(state) {
 
 function adaptModuleCardToPracticeQuestion(item, sectionIndex) {
   const type = normalizeQuestionType(item.type || '');
-  const mappings = Array.isArray(item.categoryMappings) ? item.categoryMappings : [];
-  const mappingBlob = mappings.map(m =>
-    type === 'matching'
-      ? `${m.item}::${m.category}`
-      : `${m.category}::${m.item}`
-  ).join('\n');
-  const correctBlobByType = {
-    sba: item.answers?.[0] || '',
-    sba_image: item.answers?.[0] || '',
-    fitb: (item.answers || []).join('|'),
-    sata: (item.answers || []).join('|'),
-    categorization: mappingBlob,
-    matching: mappingBlob
-  };
-  const distractorsByType = {
-    sba: (item.options || []).filter(opt => opt !== (item.answers?.[0] || '')).join('|'),
-    sba_image: (item.options || []).filter(opt => opt !== (item.answers?.[0] || '')).join('|'),
-    fitb: '',
-    sata: (item.options || []).join('|'),
-    categorization: '',
-    matching: ''
-  };
-
   return {
     item_type: type,
     stem: item.prompt || '',
     feedback: item.feedback || item.rationale || '',
     rationale: item.feedback || item.rationale || '',
     media_url: item.mediaUrl || '',
-    correct_blob: correctBlobByType[type] || '',
-    distractors_blob: distractorsByType[type] || '',
+    correct_blob: String(item.correctBlob || ''),
+    distractors_blob: String(item.distractorsBlob || ''),
+    settings: String(item.settingsRaw || ''),
     _moduleStateKey: `module::${sectionIndex}::${item.slot || ''}`
   };
+}
+
+function getEssayWordLimit(settingsValue) {
+  const raw = String(settingsValue || '').trim();
+  return /^\d+$/.test(raw) ? Number(raw) : 0;
+}
+
+function countWords(value) {
+  const trimmed = String(value || '').trim();
+  return trimmed ? trimmed.split(/\s+/).filter(Boolean).length : 0;
 }
 
 function renderModuleQuestionCard(item, sectionIndex, onComplete) {
@@ -5977,14 +5966,14 @@ function renderModuleQuestionCard(item, sectionIndex, onComplete) {
     return block;
   };
 
-  if (type === 'sba' || type === 'sba_image') {
+  if (type === 'sba') {
     const correct = String(question.correct_blob || '');
     if (!correct) return renderIncompleteCard(item, sectionIndex, onComplete, 'SBA card is missing answer data.');
     const distractors = splitBlob(question.distractors_blob);
     const allOptions = [correct, ...distractors].filter(Boolean);
     state.optionOrder = getStableOptionOrder(state.optionOrder, allOptions);
     const options = state.optionOrder;
-    const imageHtml = type === 'sba_image' && question.media_url
+    const imageHtml = question.media_url
       ? `<div class="practice-image-wrap"><img src="${html(question.media_url)}" alt="Question image" class="practice-image" /></div>`
       : '';
 
@@ -6036,40 +6025,61 @@ function renderModuleQuestionCard(item, sectionIndex, onComplete) {
   }
 
   if (type === 'fitb') {
-    const acceptedAnswers = parseAcceptedFitbAnswers(question.correct_blob || '');
-    const displayedCorrect = getDisplayedFitbAnswer(acceptedAnswers);
-    const stemHtml = buildFITBStemHtml(question.stem, acceptedAnswers);
-    if (!acceptedAnswers.length) return renderIncompleteCard(item, sectionIndex, onComplete, 'FITB card is missing answer data.');
-    const isCorrect = state.submitted ? isFitbAnswerCorrect(state.text, acceptedAnswers) : false;
+    const answerGroups = parseFitbAnswerGroups(question.correct_blob || '');
+    const displayedCorrect = getDisplayedFitbAnswers(answerGroups);
+    const stemHtml = buildFITBStemHtml(question.stem);
+    const blankCount = (String(question.stem || '').match(/`([^`]+)`/g) || []).length;
+    const inputCount = Math.max(blankCount, answerGroups.length, 1);
+    if (!answerGroups.length) return renderIncompleteCard(item, sectionIndex, onComplete, 'FITB card is missing answer data.');
+
+    const savedAnswers = Array.isArray(state.fitbAnswers)
+      ? state.fitbAnswers
+      : (state.text ? [state.text] : []);
+    const isCorrect = state.submitted ? areFitbAnswersCorrect(savedAnswers, answerGroups) : false;
+
     renderFrame(`
       <div id="practice-stem" class="practice-stem">${stemHtml}</div>
       <button id="practice-stem-toggle" class="practice-stem-toggle" style="display:none;" type="button">Expand case</button>
-      <div style="margin-top:10px;">
-        <input type="text" class="gate-input module-fitb-input" value="${html(state.text || '')}" placeholder="Type your answer" ${state.submitted ? 'disabled' : ''} />
+      <div style="margin-top:10px; display:grid; gap:10px;">
+        ${Array.from({ length: inputCount }, (_, blankIndex) => `
+          <label style="display:grid; gap:5px;">
+            ${inputCount > 1 ? `<span style="font-size:0.82rem; color:#5f718f;">Blank ${blankIndex + 1}</span>` : ''}
+            <input
+              type="text"
+              class="gate-input module-fitb-input"
+              data-fitb-index="${blankIndex}"
+              value="${html(savedAnswers[blankIndex] || '')}"
+              placeholder="${inputCount > 1 ? `Answer for blank ${blankIndex + 1}` : 'Type your answer'}"
+              ${state.submitted ? 'disabled' : ''}
+            />
+          </label>
+        `).join('')}
       </div>
       ${!state.submitted ? '<div style="margin-top:10px;"><button type="button" class="action-btn module-fitb-submit">Check Answer</button></div>' : ''}
       <div class="practice-feedback" style="margin-top:8px;">
-        ${state.submitted ? `${buildPracticeStyledResultHtml(isCorrect, `Correct answer: ${html(displayedCorrect)}`)}${buildPracticeRationaleHtml(question.rationale)}` : ''}
+        ${state.submitted ? `${buildPracticeStyledResultHtml(isCorrect, isCorrect ? '' : (displayedCorrect.length <= 1 ? `Correct answer: ${html(displayedCorrect[0] || '')}` : displayedCorrect.map((answer, idx) => `Blank ${idx + 1}: ${html(answer)}`).join('<br>')))}${buildPracticeRationaleHtml(question.rationale)}` : ''}
       </div>
     `);
     initializePracticeStemToggle(block);
+
     if (!state.submitted) {
-      const input = block.querySelector('.module-fitb-input');
+      const inputs = [...block.querySelectorAll('.module-fitb-input')];
       const submitBtn = block.querySelector('.module-fitb-submit');
       const submit = () => {
-        const val = String(input?.value || '').trim();
-        if (!val) return;
-        state.text = val;
-        markModuleQuestionSubmitted(state, isFitbAnswerCorrect(val, acceptedAnswers));
+        const values = inputs.map(input => String(input.value || '').trim());
+        if (values.some(value => !value)) return;
+        state.fitbAnswers = values;
+        state.text = values[0] || '';
+        markModuleQuestionSubmitted(state, areFitbAnswersCorrect(values, answerGroups));
         replaceCard(block, renderModuleQuestionCard(item, sectionIndex, onComplete));
       };
       submitBtn?.addEventListener('click', submit);
-      input?.addEventListener('keydown', e => {
+      inputs.forEach(input => input.addEventListener('keydown', e => {
         if (e.key === 'Enter') {
           e.preventDefault();
           submit();
         }
-      });
+      }));
     }
     return block;
   }
@@ -6139,11 +6149,15 @@ function renderModuleQuestionCard(item, sectionIndex, onComplete) {
   }
 
   if (type === 'essay') {
+    const wordLimit = getEssayWordLimit(question.settings);
+    const currentWordCount = countWords(state.text || '');
     renderFrame(`
       <div id="practice-stem" class="practice-stem">${html(question.stem)}</div>
       <button id="practice-stem-toggle" class="practice-stem-toggle" style="display:none;" type="button">Expand case</button>
+      ${wordLimit ? `<div style="margin-top:8px; font-size:0.82rem; color:#5f718f;">Word limit: ${wordLimit}</div>` : ''}
       <div style="margin-top:10px;">
         <textarea class="reflection-input module-essay-input" placeholder="Type your response..." ${state.submitted ? 'disabled' : ''}>${html(state.text || '')}</textarea>
+        <div class="module-essay-count" style="margin-top:5px; font-size:0.82rem; color:#5f718f;">${currentWordCount}${wordLimit ? ` / ${wordLimit}` : ''} words</div>
       </div>
       ${!state.submitted ? '<div style="margin-top:10px;"><button type="button" class="action-btn module-essay-submit">Submit response</button></div>' : ''}
       <div class="practice-feedback" style="margin-top:8px;">
@@ -6152,10 +6166,21 @@ function renderModuleQuestionCard(item, sectionIndex, onComplete) {
     `);
     initializePracticeStemToggle(block);
     if (!state.submitted) {
-      block.querySelector('.module-essay-submit')?.addEventListener('click', () => {
-        const text = String(block.querySelector('.module-essay-input')?.value || '').trim();
-        if (!text) return;
-        state.text = text;
+      const textarea = block.querySelector('.module-essay-input');
+      const countEl = block.querySelector('.module-essay-count');
+      const submitBtn = block.querySelector('.module-essay-submit');
+      const updateCount = () => {
+        const words = countWords(textarea?.value || '');
+        if (countEl) countEl.textContent = `${words}${wordLimit ? ` / ${wordLimit}` : ''} words`;
+        if (submitBtn) submitBtn.disabled = !!(wordLimit && words > wordLimit);
+      };
+      textarea?.addEventListener('input', updateCount);
+      updateCount();
+      submitBtn?.addEventListener('click', () => {
+        const value = String(textarea?.value || '').trim();
+        if (!value) return;
+        if (wordLimit && countWords(value) > wordLimit) return;
+        state.text = value;
         markModuleUngradedSubmitted(state);
         replaceCard(block, renderModuleQuestionCard(item, sectionIndex, onComplete));
       });
