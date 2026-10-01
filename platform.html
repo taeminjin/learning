@@ -2923,8 +2923,6 @@ function saveCachedPracticeTopics(topics) {
     const safeTopics = Array.isArray(topics) ? topics : [];
     localStorage.setItem(PRACTICE_TOPICS_CACHE_KEY, JSON.stringify({
       savedAt: Date.now(),
-    sessionId: practiceTestState.sessionId || "",
-    startedAt: practiceTestState.startedAt || null,
       topics: safeTopics
     }));
   } catch (err) {
@@ -3330,6 +3328,8 @@ function buildPracticeSessionSnapshot() {
   return {
     savedAt: Date.now(),
     participantEmail: typeof participantEmail !== 'undefined' ? participantEmail : '',
+    sessionId: practiceTestState.sessionId || '',
+    startedAt: practiceTestState.startedAt || null,
     selectedCourse: practiceTestState.selectedCourse || '',
     selectedTopics: Array.isArray(practiceTestState.selectedTopics) ? practiceTestState.selectedTopics : [],
     questionCount: Number(practiceTestState.questionCount || practiceTestState.requestedQuestionCount || 0),
