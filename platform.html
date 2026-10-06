@@ -2391,7 +2391,7 @@
 const LOAD_URL = 'https://script.google.com/macros/s/AKfycbyxevT1EWOj_IgdmL2oFiubBWc3b1BC5BnUuCL5-w0PxLjVPE9xsO_m_3RoIgqZ9mvO_A/exec';
 const SUBMIT_URL = LOAD_URL;
 const PRACTICE_API_URL = 'https://script.google.com/macros/s/AKfycbyGXa8KdMd5kYJrkOew56oljtPPNvKpNxMnMf1IsHp2C0XAeth7fP-MDhzPlkhUvPXlpQ/exec';
-const PLATFORM_BUILD = '2026-10-06-simple-score-v3';
+const PLATFORM_BUILD = '2026-10-06-performance-keyboard-v4';
 const PRACTICE_SESSION_STORAGE_KEY = 'inProgressPracticeSession';
 const GOOGLE_CLIENT_ID = '534534627380-bd6hjuj4ihbf6i7r2qsjnen6cqhm14ma.apps.googleusercontent.com';
 
@@ -2954,9 +2954,13 @@ async function fetchPracticeTopics(forceRefresh = false) {
 
   try {
     const data = await postToAppsScript(PRACTICE_API_URL, { action: 'getPracticeTopics' }, {
-      retries: 2,
-      retryDelayMs: 1000,
-      timeoutMs: 30000
+      retries: 1,
+      retryDelayMs: 800,
+      timeoutMs: 15000,
+      onRetry: () => {
+        const messageEl = $('practice-setup-message');
+        if (messageEl) messageEl.textContent = 'Quiz topics are taking longer than usual. Retrying…';
+      }
     });
 
     if (data?.ok) {
@@ -3047,15 +3051,17 @@ function isDesktopKeyboardPracticeContext() {
   if ($('module-browser')?.open || document.activeElement?.closest('#module-entry-wrap')) return false;
   const questionContainer = document.getElementById('practice-question-container');
   const currentQuestion = getCurrentPracticeQuestion();
-  const supportsDesktopPointer = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
-  const isNonTouch = (navigator.maxTouchPoints || 0) === 0;
+
+  // Do not disable keyboard shortcuts just because the device also has a
+  // touchscreen. Many Chromebooks and Windows laptops report touch points even
+  // while the student is using a physical keyboard and trackpad/mouse.
+  const supportsKeyboardStylePointer = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
 
   return Boolean(
     questionContainer &&
     isElementVisible(questionContainer) &&
     currentQuestion &&
-    supportsDesktopPointer &&
-    isNonTouch
+    supportsKeyboardStylePointer
   );
 }
 
@@ -3084,7 +3090,9 @@ function bindPracticeKeyboardShortcuts() {
     if (!['sba', 'sata'].includes(itemType)) return;
 
     const key = String(event.key || '');
-    const isDigitShortcut = ['1', '2', '3', '4', '5'].includes(key);
+    const codeMatch = /^(?:Digit|Numpad)([1-5])$/.exec(String(event.code || ''));
+    const shortcutDigit = ['1', '2', '3', '4', '5'].includes(key) ? key : (codeMatch ? codeMatch[1] : '');
+    const isDigitShortcut = Boolean(shortcutDigit);
     const isSpaceShortcut = key === ' ' || key === 'Spacebar' || event.code === 'Space';
     if (!isDigitShortcut && !isSpaceShortcut) return;
 
@@ -3095,7 +3103,7 @@ function bindPracticeKeyboardShortcuts() {
     if (itemType === 'sba') {
       if (isDigitShortcut) {
         const buttons = [...document.querySelectorAll('.practice-answer-btn')].filter(isElementVisible);
-        const targetBtn = buttons[Number(key) - 1];
+        const targetBtn = buttons[Number(shortcutDigit) - 1];
         if (!targetBtn) return;
         event.preventDefault();
         targetBtn.click();
@@ -3112,7 +3120,7 @@ function bindPracticeKeyboardShortcuts() {
     if (itemType === 'sata') {
       if (isDigitShortcut) {
         const buttons = [...document.querySelectorAll('.practice-sata-btn')].filter(isElementVisible);
-        const targetBtn = buttons[Number(key) - 1];
+        const targetBtn = buttons[Number(shortcutDigit) - 1];
         if (!targetBtn) return;
         event.preventDefault();
         targetBtn.click();
@@ -3731,9 +3739,13 @@ async function startPracticeSessionWithSettings(selectedTopics, questionCount) {
       topics,
       question_count: count
     }, {
-      retries: 2,
-      retryDelayMs: 1000,
-      timeoutMs: 30000
+      retries: 1,
+      retryDelayMs: 800,
+      timeoutMs: 20000,
+      onRetry: () => {
+        const loading = $('practice-question-container')?.querySelector('.practice-restart-loading-state p');
+        if (loading) loading.textContent = 'Questions are taking longer than usual. Retrying…';
+      }
     });
     if (!data || data.ok !== true) {
       throw new Error(data?.error || 'Unable to load practice questions.');
@@ -6357,9 +6369,9 @@ async function handleGoogleCredentialResponse(response) {
       action: 'verifyGoogleLogin',
       id_token: idToken
     }, {
-      retries: 2,
-      retryDelayMs: 1000,
-      timeoutMs: 30000,
+      retries: 1,
+      retryDelayMs: 800,
+      timeoutMs: 20000,
       onRetry: () => setAuthStatus('Connection hiccup. Retrying…')
     });
 
@@ -6832,6 +6844,10 @@ async function loadDashboard() {
   const data = await postToAppsScript(LOAD_URL, {
     action: 'getUserDashboard',
     email: currentUserEmail
+  }, {
+    retries: 1,
+    retryDelayMs: 800,
+    timeoutMs: 20000
   });
 
   if (!data || data.ok !== true) {
