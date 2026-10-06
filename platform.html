@@ -2391,7 +2391,7 @@
 const LOAD_URL = 'https://script.google.com/macros/s/AKfycbyxevT1EWOj_IgdmL2oFiubBWc3b1BC5BnUuCL5-w0PxLjVPE9xsO_m_3RoIgqZ9mvO_A/exec';
 const SUBMIT_URL = LOAD_URL;
 const PRACTICE_API_URL = 'https://script.google.com/macros/s/AKfycbyGXa8KdMd5kYJrkOew56oljtPPNvKpNxMnMf1IsHp2C0XAeth7fP-MDhzPlkhUvPXlpQ/exec';
-const PLATFORM_BUILD = '2026-09-16-reliability-v2';
+const PLATFORM_BUILD = '2026-10-06-simple-score-v3';
 const PRACTICE_SESSION_STORAGE_KEY = 'inProgressPracticeSession';
 const GOOGLE_CLIENT_ID = '534534627380-bd6hjuj4ihbf6i7r2qsjnen6cqhm14ma.apps.googleusercontent.com';
 
@@ -2457,11 +2457,7 @@ let allSections = [];
 const $  = id => document.getElementById(id);
 const now = () => new Date().toISOString();
 
-function makeSessionId(code) {
-  const rand  = Math.random().toString(36).slice(2,6).toUpperCase();
-  const stamp = new Date().toISOString().replace(/[-:T]/g,'').slice(0,12);
-  return `${code}-${stamp}-${rand}`;
-}
+
 
 function logEvent(type, data = {}) {
   events.push({
@@ -2795,6 +2791,9 @@ function isRetryableRequestError(error) {
 }
 
 async function postToAppsScript(url, payload, options = {}) {
+  const publicAction = ['verifyGoogleLogin','healthCheck'].includes(payload?.action);
+  payload = publicAction ? {...payload} : {...payload, session_token:sessionToken};
+  if (!publicAction && !sessionToken) return {ok:false,code:'auth_required',error:'Sign in again to sync your saved work.'};
   const {
     retries = DEFAULT_API_RETRIES,
     retryDelayMs = 800,
@@ -2894,8 +2893,8 @@ function getFriendlyNetworkMessage(error) {
 }
 
 
-const PRACTICE_TOPICS_CACHE_KEY = 'practice_topics_cache_v1';
-const PRACTICE_TOPICS_CACHE_MAX_AGE_MS = 6 * 60 * 60 * 1000;
+const PRACTICE_TOPICS_CACHE_KEY = 'practice_topics_cache_v3';
+const PRACTICE_TOPICS_CACHE_MAX_AGE_MS = 5 * 60 * 1000;
 
 function loadCachedPracticeTopics() {
   try {
@@ -3207,7 +3206,6 @@ function getAllQuestionFeedbackForSubmit() {
       (item.confusing || item.two_correct || item.none_correct || item.outside_scope || item.comment)
     );
 
-  console.log('[practice feedback] final feedback payload', results);
   return results;
 }
 
@@ -3324,83 +3322,18 @@ function resetFeedbackUiForNewQuestion() {
   });
 }
 
-function buildPracticeSessionSnapshot() {
-  return {
-    savedAt: Date.now(),
-    participantEmail: typeof participantEmail !== 'undefined' ? participantEmail : '',
-    sessionId: practiceTestState.sessionId || '',
-    startedAt: practiceTestState.startedAt || null,
-    selectedCourse: practiceTestState.selectedCourse || '',
-    selectedTopics: Array.isArray(practiceTestState.selectedTopics) ? practiceTestState.selectedTopics : [],
-    questionCount: Number(practiceTestState.questionCount || practiceTestState.requestedQuestionCount || 0),
-    questions: Array.isArray(practiceTestState.questions) ? practiceTestState.questions : [],
-    currentIndex: Number(practiceTestState.currentIndex || 0),
-    answers: practiceTestState.answers || {},
-    answerState: practiceTestState.answerState || {},
-    results: Array.isArray(practiceTestState.results) ? practiceTestState.results : [],
-    feedbackByQuestionId: practiceTestState.feedbackByQuestionId || {},
-    sessionComplete: !!practiceTestState.sessionComplete
-  };
-}
 
-function savePracticeSessionToLocal() {
-  try {
-    const hasActiveQuestions =
-      Array.isArray(practiceTestState.questions) &&
-      practiceTestState.questions.length > 0 &&
-      !practiceTestState.sessionComplete;
 
-    if (!hasActiveQuestions) {
-      return;
-    }
 
-    const snapshot = buildPracticeSessionSnapshot();
-    localStorage.setItem(PRACTICE_SESSION_STORAGE_KEY, JSON.stringify(snapshot));
-  } catch (err) {
-    console.warn('Unable to save practice session locally:', err);
-  }
-}
 
-function loadPracticeSessionFromLocal() {
-  try {
-    const raw = localStorage.getItem(PRACTICE_SESSION_STORAGE_KEY);
-    if (!raw) return null;
 
-    const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== 'object') return null;
 
-    return parsed;
-  } catch (err) {
-    console.warn('Unable to load saved practice session:', err);
-    return null;
-  }
-}
 
-function clearPracticeSessionFromLocal() {
-  try {
-    localStorage.removeItem(PRACTICE_SESSION_STORAGE_KEY);
-  } catch (err) {
-    console.warn('Unable to clear saved practice session:', err);
-  }
-}
 
-function isRecoverablePracticeSession(snapshot) {
-  if (!snapshot) return false;
-  if (!Array.isArray(snapshot.questions) || !snapshot.questions.length) return false;
-  if (snapshot.sessionComplete) return false;
 
-  const savedAt = Number(snapshot.savedAt || 0);
-  if (!savedAt) return false;
-
-  const ageMs = Date.now() - savedAt;
-  const maxAgeMs = 6 * 60 * 60 * 1000;
-
-  if (ageMs < 0 || ageMs > maxAgeMs) return false;
-
-  return true;
-}
 
 function restorePracticeSessionFromSnapshot(snapshot) {
+  if(!isRecoverablePracticeSession(snapshot))return;
   practiceTestState.sessionId = snapshot.sessionId || practiceTestState.sessionId || "";
   practiceTestState.startedAt = snapshot.startedAt || practiceTestState.startedAt || null;
   practiceTestState.selectedCourse = snapshot.selectedCourse || '';
@@ -3480,20 +3413,7 @@ function hasActivePracticeSession() {
   );
 }
 
-function maybePromptPracticeRecovery() {
-  const savedPracticeSnapshot = loadPracticeSessionFromLocal();
-  if (!isRecoverablePracticeSession(savedPracticeSnapshot)) return;
 
-  const recoveredCourse = inferPlatformCourseFromPracticeName(savedPracticeSnapshot.selectedCourse);
-  if (recoveredCourse) {
-    selectedPlatformCourseKey = recoveredCourse.key;
-    updateSelectedCourseUi();
-  }
-
-  showDashboardView('practice');
-  showPracticeQuestionOverlay();
-  renderPracticeRecoveryPrompt(savedPracticeSnapshot);
-}
 
 function renderPracticeSetupTopics(topics) {
   const topicList = $('practice-topic-list');
@@ -3656,6 +3576,7 @@ async function handleStartPracticeClick(event) {
       btn.textContent = 'Loading...';
     }
 
+    savePracticeSessionToLocal();
     // Fully reset question results and session state for a fresh practice run.
     practiceTestState.questions = [];
     practiceTestState.currentIndex = 0;
@@ -3697,88 +3618,7 @@ function resetPracticeDashboardStateFromUI() {
   });
 }
 
-async function returnToDashboard() {
-  if (practiceTestState.returningToDashboard) return;
-  practiceTestState.returningToDashboard = true;
 
-  const pendingResults = Array.isArray(practiceTestState?.results)
-    ? JSON.parse(JSON.stringify(practiceTestState.results))
-    : [];
-
-  const pendingFeedbackByQuestionId = practiceTestState?.feedbackByQuestionId
-    ? JSON.parse(JSON.stringify(practiceTestState.feedbackByQuestionId))
-    : {};
-
-  const pendingSessionId = String(practiceTestState?.sessionId || '');
-
-  try {
-    hidePracticeQuestionOverlay();
-
-    if (pendingResults.length && !practiceTestState.resultsSubmitted) {
-      const originalResults = practiceTestState.results;
-      const originalFeedback = practiceTestState.feedbackByQuestionId;
-      const originalSessionId = practiceTestState.sessionId;
-
-      try {
-        practiceTestState.results = pendingResults;
-        practiceTestState.feedbackByQuestionId = pendingFeedbackByQuestionId;
-        practiceTestState.sessionId = pendingSessionId;
-
-        console.log('[practice dashboard exit] submitting partial progress', {
-          pendingResults,
-          pendingFeedbackByQuestionId,
-          pendingSessionId
-        });
-
-        await submitPracticeResultsAndUpdateDashboard({ showAlertOnError: false });
-      } catch (err) {
-        console.error('Failed to submit partial practice results before returning to dashboard:', err);
-      } finally {
-        practiceTestState.results = originalResults;
-        practiceTestState.feedbackByQuestionId = originalFeedback;
-        practiceTestState.sessionId = originalSessionId;
-      }
-    }
-
-    clearPracticeSessionFromLocal();
-
-    resetPracticeDashboardStateFromUI();
-
-
-    if (practiceTestState) {
-      practiceTestState.selectedCourse = '';
-      practiceTestState.selectedTopics = [];
-      practiceTestState.currentIndex = 0;
-      practiceTestState.questions = [];
-      practiceTestState.results = [];
-      practiceTestState.correctCount = 0;
-      practiceTestState.incorrectCount = 0;
-      practiceTestState.requestedQuestionCount = 10;
-      practiceTestState.practiceTopicsLoaded = false;
-      practiceTestState.practiceTopicsLoading = false;
-      practiceTestState.resultsSubmitted = false;
-      practiceTestState.sessionComplete = false;
-      practiceTestState.answers = {};
-      practiceTestState.answerState = {};
-      practiceTestState.feedbackByQuestionId = {};
-      practiceTestState.sessionId = "";
-      practiceTestState.startedAt = null;
-    }
-
-    if ($('practice-topic-list')) $('practice-topic-list').innerHTML = '';
-    if ($('practice-controls-row')) $('practice-controls-row').hidden = true;
-
-    $('dashboard').style.display = 'block';
-    $('training').style.display = 'none';
-    showDashboardView('practice');
-
-    updatePracticeTopicOptions();
-    updatePracticeStartButtonState();
-    initializePracticeSetup();
-  } finally {
-    practiceTestState.returningToDashboard = false;
-  }
-}
 
 function getPracticeSessionSummary() {
   return {
@@ -3855,7 +3695,7 @@ async function startPracticeSessionWithSettings(selectedTopics, questionCount) {
     throw new Error('No signed-in user email was found.');
   }
 
-  clearPracticeSessionFromLocal();
+  savePracticeSessionToLocal();
 
   // Reset session state immediately before loading fresh questions.
   practiceTestState.questions = [];
@@ -3899,7 +3739,7 @@ async function startPracticeSessionWithSettings(selectedTopics, questionCount) {
       throw new Error(data?.error || 'Unable to load practice questions.');
     }
 
-    practiceTestState.sessionId = `${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+    practiceTestState.sessionId = makeSessionId('practice');
     practiceTestState.startedAt = new Date().toISOString();
     practiceTestState.selectedCourse = String(practiceTestState.selectedCourse || '').trim();
     practiceTestState.selectedTopics = [...topics];
@@ -3969,7 +3809,7 @@ function renderPracticeRestartErrorState(message) {
   practiceQuestionContainer.innerHTML = `
     <div class="practice-restart-error-state">
       <h2>Unable to start a new practice set</h2>
-      <p>${message || 'Something went wrong while loading your questions.'}</p>
+      <p>${html(message || 'Something went wrong while loading your questions.')}</p>
     </div>
   `;
 }
@@ -4094,16 +3934,7 @@ function getQuestionFeedback(question) {
   return String(question?.feedback || question?.rationale || "").trim();
 }
 
-function buildPracticeRationaleHtml(feedback) {
-  const text = String(feedback || "").trim();
-  if (!text) return "";
-  return `
-    <div class="practice-rationale">
-      <strong>Feedback</strong>
-      <div>${text}</div>
-    </div>
-  `;
-}
+
 
 function initializePracticeStemToggle(container) {
   const stem = container.querySelector("#practice-stem");
@@ -4157,55 +3988,11 @@ function recordPracticeQuestionResult(question, isCorrect) {
     practiceTestState.incorrectCount += 1;
   }
 
-  console.log("practice results", practiceTestState.results);
   savePracticeSessionToLocal();
 }
 
 
-async function submitPracticeResultsAndUpdateDashboard(options = {}) {
-  const { showAlertOnError = true } = options;
-  const email = normalizeIdentityValue(currentUserEmail || participantEmail || '');
-  const results = practiceTestState?.results;
 
-  if (!practiceTestState || !email || !Array.isArray(results) || results.length === 0) {
-    return { ok: true, skipped: true };
-  }
-
-  if (practiceTestState.resultsSubmitted) {
-    return { ok: true, skipped: true, alreadySubmitted: true };
-  }
-
-  const payload = {
-    action: 'submitPracticeResults',
-    email,
-    session_id: practiceTestState.sessionId || '',
-    question_results: results || [],
-    question_feedback: getAllQuestionFeedbackForSubmit()
-  };
-  console.log('[practice submit] payload', payload);
-
-  try {
-    const data = await postToAppsScript(PRACTICE_API_URL, payload);
-
-    if (data.ok) {
-      practiceTestState.resultsSubmitted = true;
-      console.log("Practice results submitted successfully:", data);
-    } else {
-      console.log("Practice results submission failed:", data);
-      if (showAlertOnError) {
-        alert('Error submitting practice results: ' + (data.error || 'Unknown error'));
-      }
-    }
-
-    return data;
-  } catch (err) {
-    console.error('Failed to submit practice results:', err);
-    if (showAlertOnError) {
-      alert('Failed to submit practice results.');
-    }
-    return { ok: false, error: getFriendlyNetworkMessage(err) || 'Failed to submit practice results.' };
-  }
-}
 
 function renderPracticeResultsSummary() {
   const container = document.getElementById("practice-question-container");
@@ -4244,22 +4031,7 @@ function renderPracticeResultsSummary() {
   }
 }
 
-async function submitFinalPracticeResults() {
-  renderPracticeSubmittingState();
 
-  const response = await submitPracticeResultsAndUpdateDashboard({ showAlertOnError: false });
-
-  if (response?.ok) {
-    practiceTestState.sessionComplete = true;
-    clearPracticeSessionFromLocal();
-    renderPracticeResultsSummary();
-    return;
-  }
-
-  const errorMessage = response?.error || 'Failed to submit your results.';
-  console.error('Final practice submission failed:', errorMessage);
-  renderPracticeSubmitError(errorMessage);
-}
 
 function renderSBAImageQuestion(q, index, total) {
   const container = document.getElementById("practice-question-container");
@@ -4284,7 +4056,7 @@ function renderSBAImageQuestion(q, index, total) {
     ? `
       <div class="practice-image-wrap">
         <img
-          src="${q.media_url}"
+          src="${html(safeMediaUrl(q.media_url))}"
           alt="Question image"
           class="practice-image"
         />
@@ -4300,7 +4072,7 @@ function renderSBAImageQuestion(q, index, total) {
       </div>
 
       <div id="practice-stem" class="practice-stem">
-        ${q.stem}
+        ${safeRichText(q.stem)}
       </div>
 
       <button id="practice-stem-toggle" class="practice-stem-toggle" style="display:none;">
@@ -4314,9 +4086,9 @@ function renderSBAImageQuestion(q, index, total) {
           <button
             type="button"
             class="action-btn practice-answer-btn"
-            data-answer="${String(answer).replace(/"/g, '&quot;')}"
+            data-answer="${html(answer)}"
           >
-            <span class="practice-answer-text">${answer}</span>
+            <span class="practice-answer-text">${safeRichText(answer)}</span>
           </button>
         `).join("")}
       </div>
@@ -4382,7 +4154,7 @@ function renderSBAQuestion(q, index, total) {
       </div>
 
       <div id="practice-stem" class="practice-stem">
-        ${q.stem}
+        ${safeRichText(q.stem)}
       </div>
 
       <button id="practice-stem-toggle" class="practice-stem-toggle" style="display:none;">
@@ -4394,9 +4166,9 @@ function renderSBAQuestion(q, index, total) {
           <button
             type="button"
             class="action-btn practice-answer-btn"
-            data-answer="${String(answer).replace(/"/g, '&quot;')}"
+            data-answer="${html(answer)}"
           >
-            <span class="practice-answer-text">${answer}</span>
+            <span class="practice-answer-text">${safeRichText(answer)}</span>
           </button>
         `).join("")}
       </div>
@@ -4507,6 +4279,9 @@ function renderFITBQuestion(q, index, total) {
   };
 
   inputs.forEach(input => {
+    input.addEventListener('input', () => {
+      if(stateKey){practiceTestState.answers[stateKey]=inputs.map(el=>el.value);scheduleDraftSave(true);}
+    });
     input.addEventListener('blur', () => {
       input.value = input.value.trim();
       saveAnswers();
@@ -4554,7 +4329,7 @@ if (stateKey) {
       </div>
 
       <div id="practice-stem" class="practice-stem">
-        ${q.stem}
+        ${safeRichText(q.stem)}
       </div>
 
       <button id="practice-stem-toggle" class="practice-stem-toggle" style="display:none;">
@@ -4570,9 +4345,9 @@ if (stateKey) {
           <button
             type="button"
             class="practice-sata-btn"
-            data-answer="${String(answer).replace(/"/g, '&quot;')}"
+            data-answer="${html(answer)}"
           >
-            <span class="practice-answer-text">${answer}</span>
+            <span class="practice-answer-text">${safeRichText(answer)}</span>
             <span class="sata-check">✓</span>
           </button>
         `).join("")}
@@ -4667,7 +4442,7 @@ function renderCategorizeQuestion(q, index, total) {
       </div>
 
       <div id="practice-stem" class="practice-stem">
-        ${q.stem}
+        ${safeRichText(q.stem)}
       </div>
 
       <button id="practice-stem-toggle" class="practice-stem-toggle" style="display:none;">
@@ -4687,7 +4462,7 @@ function renderCategorizeQuestion(q, index, total) {
               <div
                 class="practice-categorize-item"
                 draggable="true"
-                data-item="${String(item).replace(/"/g, '&quot;')}"
+                data-item="${html(item)}"
                 data-location="pool"
               >
                 ${item}
@@ -4700,7 +4475,7 @@ function renderCategorizeQuestion(q, index, total) {
           ${uniqueCategories.map(category => `
             <div
               class="practice-categorize-zone practice-categorize-dropzone"
-              data-category="${String(category).replace(/"/g, '&quot;')}"
+              data-category="${html(category)}"
               style="margin-bottom:12px;"
             >
               <div class="practice-categorize-zone-title">${category}</div>
@@ -4979,7 +4754,7 @@ function handlePracticeAnswer(question, selected, correct, rationale) {
     feedback.innerHTML = `
       <div style="margin-top:6px; padding:12px 14px; border-radius:10px; background:#fef2f2; border:1px solid #991b1b; color:#991b1b;">
         <strong>Incorrect ❌</strong><br>
-        Correct answer: ${correct}
+        Correct answer: ${safeRichText(correct)}
       </div>
       ${buildPracticeRationaleHtml(rationale)}
     `;
@@ -5125,7 +4900,7 @@ function handlePracticeSATAAnswer(question, selectedAnswers, correctAnswers, rat
       feedback.innerHTML = `
         <div style="margin-top:6px; padding:12px 14px; border-radius:10px; background:#fef2f2; border:1px solid #991b1b; color:#991b1b;">
           <strong>Incorrect ❌</strong><br>
-          Correct answer(s): ${correctAnswers.join(", ")}
+          Correct answer(s): ${correctAnswers.map(html).join(", ")}
         </div>
         ${buildPracticeRationaleHtml(rationale)}
       `;
@@ -5211,8 +4986,8 @@ function handlePracticeCategorizeAnswer(question, container, mappings, placement
       const answerText = mappings
         .filter(mapping => !isNAValue(mapping.item))
         .map(mapping => {
-          if (isNAValue(mapping.category)) return `${mapping.item} → No category`;
-          return `${mapping.item} → ${mapping.category}`;
+          if (isNAValue(mapping.category)) return `${html(mapping.item)} → No category`;
+          return `${html(mapping.item)} → ${html(mapping.category)}`;
         })
         .join("<br>");
 
@@ -5277,24 +5052,9 @@ async function fetchPracticeQuestions() {
   return await startPracticeSessionWithSettings(topics, questionCount);
 }
 
-function saveAuthSession() {
-  try {
-    const payload = {
-      email: currentUserEmail || '',
-      name: currentUserName || '',
-      isAuthenticated: !!isAuthenticated
-    };
-    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(payload));
-  } catch (_) {}
-}
 
-function loadAuthSession() {
-  try {
-    return JSON.parse(localStorage.getItem(AUTH_STORAGE_KEY));
-  } catch (_) {}
 
-  return null;
-}
+
 
 function clearAuthSession() {
   try {
@@ -5302,97 +5062,12 @@ function clearAuthSession() {
   } catch (_) {}
 }
 
-async function loadTrainingRowsFromSheet(email, selectedModuleKey) {
-  const normalizedEmail = normalizeIdentityValue(email);
-  const normalizedModuleKey = String(selectedModuleKey || '').trim();
-
-  if (!normalizedEmail || !normalizedModuleKey) {
-    throw new Error('Please select a module from your dashboard.');
-  }
-
-  const data = await postToAppsScript(LOAD_URL, {
-    action: 'loadTraining',
-    email: normalizedEmail,
-    module_key: normalizedModuleKey
-  });
-
-  if (!data || data.ok !== true) {
-    throw new Error(data?.error || 'The server did not return a valid training payload.');
-  }
-
-  if (!Array.isArray(data.rows) || data.rows.length === 0) {
-    throw new Error('No training rows were returned for this module.');
-  }
-
-  return {
-    rows: data.rows,
-    moduleTitle: data.moduleTitle || moduleTitleText,
-    moduleLabel: data.moduleLabel || moduleLabelText,
-    moduleKey: data.moduleKey || normalizedModuleKey,
-    participantBadge: data.participantBadge || data.badgeText || normalizedEmail
-  };
-}
-
-async function loadTrainingByAssignmentKey(email, assignmentKey) {
-  const normalizedEmail = normalizeIdentityValue(email);
-  const normalizedAssignmentKey = String(assignmentKey || '').trim();
-  if (!normalizedEmail || !normalizedAssignmentKey) {
-    throw new Error('Please enter your assignment key.');
-  }
-
-  const data = await postToAppsScript(LOAD_URL, {
-    action: 'loadTrainingByAssignmentKey',
-    email: normalizedEmail,
-    assignment_key: normalizedAssignmentKey
-  });
-
-  if (!data || data.ok !== true) {
-    throw new Error(data?.error || 'The server did not return a valid assignment payload.');
-  }
-
-  if (!Array.isArray(data.rows) || data.rows.length === 0) {
-    throw new Error('No training rows were returned for this assignment key.');
-  }
-
-  return {
-    rows: data.rows,
-    moduleTitle: data.moduleTitle || moduleTitleText,
-    moduleLabel: data.moduleLabel || moduleLabelText,
-    moduleKey: data.moduleKey || '',
-    participantBadge: data.participantBadge || data.badgeText || normalizedEmail
-  };
-}
 
 
-async function loadTrainingByCode(email, code) {
-  const normalizedEmail = normalizeIdentityValue(email);
-  const normalizedCode = String(code || '').trim();
-  if (!normalizedEmail || !normalizedCode) {
-    throw new Error('Please enter a module code.');
-  }
 
-  const data = await postToAppsScript(LOAD_URL, {
-    action: 'loadTrainingByCode',
-    email: normalizedEmail,
-    code: normalizedCode
-  });
 
-  if (!data || data.ok !== true) {
-    throw new Error(data?.error || 'The server did not return a valid module payload.');
-  }
 
-  if (!Array.isArray(data.rows) || data.rows.length === 0) {
-    throw new Error('No training rows were returned for this module code.');
-  }
 
-  return {
-    rows: data.rows,
-    moduleTitle: data.moduleTitle || moduleTitleText,
-    moduleLabel: data.moduleLabel || moduleLabelText,
-    moduleKey: data.moduleKey || '',
-    participantBadge: data.participantBadge || data.badgeText || normalizedEmail
-  };
-}
 
 // ─────────────────────────────────────────────
 // PROGRESS PERSISTENCE
@@ -5400,135 +5075,26 @@ async function loadTrainingByCode(email, code) {
 const STORAGE_KEY = 'training_progress_v1';
 const AUTH_STORAGE_KEY = 'practice_auth_session_v1';
 
-function saveLocalProgress() {
-  if (!participantEmail || !moduleKey) return;
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({
-      participantCode,
-      participantEmail,
-      moduleKey,
-      moduleTitleText,
-      moduleLabelText,
-      sessionId,
-      sessionStart,
-      revealedSlots,
-      completedSlotIndices: [...completedSlots],
-      totalQuestions,
-      correctFirst,
-      events,
-      interactionTimes,
-      completionReached,
-      hasSuccessfulSubmission,
-      quizStates
-    }));
-  } catch (_) {}
-}
+
 
 const PROGRESS_SYNC_DEBOUNCE_MS = 3500;
 let progressSyncTimer = null;
 let progressSyncInFlight = null;
 let progressSyncQueued = false;
 
-function buildProgressPayload() {
-  if (!participantEmail || !moduleKey) return null;
 
-  const progressPercent = totalSlots > 0
-    ? Math.round((completedSlots.size / totalSlots) * 100)
-    : 0;
 
-  const currentSectionLabel =
-    allSections?.[progressionSectionIndex]?.title || '';
 
-  return {
-    action: 'saveProgress',
-    email: participantEmail,
-    module_key: moduleKey,
-    progress_percent: progressPercent,
-    last_section: currentSectionLabel,
-    completed: completionReached
-  };
-}
 
-async function syncProgressToServer() {
-  const payload = buildProgressPayload();
-  if (!payload) return { ok: true, skipped: true };
 
-  try {
-    const data = await postToAppsScript(LOAD_URL, payload, {
-      retries: 2,
-      retryDelayMs: 900,
-      timeoutMs: 30000
-    });
 
-    if (!data || data.ok !== true) {
-      throw new Error(data?.error || 'Progress save failed.');
-    }
 
-    return data;
-  } catch (err) {
-    // Local storage already contains the latest state, so a temporary server
-    // failure should not interrupt the student. The next progress event or
-    // Save and exit will try again.
-    console.warn('Progress sync failed; local progress is still saved:', err);
-    return { ok: false, error: err?.message || 'Progress sync failed.' };
-  }
-}
 
-function scheduleProgressSync(delayMs = PROGRESS_SYNC_DEBOUNCE_MS) {
-  if (!participantEmail || !moduleKey) return;
-  if (progressSyncTimer) clearTimeout(progressSyncTimer);
 
-  progressSyncTimer = setTimeout(() => {
-    progressSyncTimer = null;
-    flushProgressToServer();
-  }, delayMs);
-}
 
-async function flushProgressToServer() {
-  if (progressSyncTimer) {
-    clearTimeout(progressSyncTimer);
-    progressSyncTimer = null;
-  }
 
-  if (progressSyncInFlight) {
-    progressSyncQueued = true;
-    return progressSyncInFlight;
-  }
 
-  progressSyncInFlight = syncProgressToServer();
 
-  try {
-    return await progressSyncInFlight;
-  } finally {
-    progressSyncInFlight = null;
-
-    if (progressSyncQueued) {
-      progressSyncQueued = false;
-      scheduleProgressSync(250);
-    }
-  }
-}
-
-function persistProgress(options = {}) {
-  const immediate = options?.immediate === true;
-  saveLocalProgress();
-
-  if (immediate) {
-    return flushProgressToServer();
-  }
-
-  scheduleProgressSync();
-  return Promise.resolve({ ok: true, scheduled: true });
-}
-
-function loadSavedProgress() {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)); }
-  catch (_) { return null; }
-}
-
-function clearSavedProgress() {
-  try { localStorage.removeItem(STORAGE_KEY); } catch (_) {}
-}
 
 // ─────────────────────────────────────────────
 // BUILD CONTENT STRUCTURE FROM CSV ROWS
@@ -5585,6 +5151,7 @@ function buildCardsForSection(rows) {
 
     return {
       type,
+      cardId: String(first.card_id || ""),
       slot,
       header: first.header || '',
       body: first.body || '',
@@ -5704,11 +5271,11 @@ function renderVideoBlock(item, sectionIndex, onComplete) {
       </div>
       ${videoId
         ? `<div class="video-wrapper">
-            <iframe src="https://www.youtube.com/embed/${html(videoId)}?rel=0&modestbranding=1" title="Training video ${sectionIndex + 1}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+            <iframe loading="lazy" src="https://www.youtube.com/embed/${html(videoId)}?rel=0&modestbranding=1" title="Training video ${sectionIndex + 1}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
           </div>`
         : `<div class="video-unavailable">
             <strong>Video unavailable</strong>
-            <small>Source: ${html(item.mediaUrl)}</small>
+            <small>Source: ${html(safeMediaUrl(item.mediaUrl))}</small>
           </div>`}
       <div class="video-footer">
         <button class="action-btn">Continue</button>
@@ -5751,7 +5318,7 @@ function renderTextImageBlock(item, sectionIndex, onComplete) {
           <h2 class="content-header">${html(item.header)}</h2>
           ${bodyHtml ? `<div class="content-body">${bodyHtml}</div>` : ''}
         </div>
-        <div class="text-image-img"><img src="${html(item.mediaUrl)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.onerror=null; this.parentElement.innerHTML='&lt;div class=&quot;text-image-fallback&quot;&gt;Image unavailable&lt;/div&gt;';" /></div>
+        <div class="text-image-img"><img src="${html(safeMediaUrl(item.mediaUrl))}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.onerror=null; this.parentElement.innerHTML='&lt;div class=&quot;text-image-fallback&quot;&gt;Image unavailable&lt;/div&gt;';" /></div>
       </div>
     </div>
   `);
@@ -5793,13 +5360,7 @@ function countAnsweredQuestionCards(structure, states) {
   return count;
 }
 
-function normalizeGradedText(value) {
-  return String(value || '')
-    .toLowerCase()
-    .replace(/[^\w\s]/g, '')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
+
 
 function parseFitbAnswerGroups(raw) {
   return String(raw || '')
@@ -5840,12 +5401,7 @@ function buildFITBStemHtml(rawStem) {
   });
 }
 
-function isFitbAnswerCorrect(userAnswer, acceptedAnswers) {
-  const userNormalized = normalizeGradedText(userAnswer);
-  if (!userNormalized) return false;
-  return (Array.isArray(acceptedAnswers) ? acceptedAnswers : [])
-    .some(answer => normalizeGradedText(answer) === userNormalized);
-}
+
 
 function areFitbAnswersCorrect(userAnswers, answerGroups) {
   const answers = Array.isArray(userAnswers) ? userAnswers : [userAnswers];
@@ -5974,7 +5530,7 @@ function renderModuleQuestionCard(item, sectionIndex, onComplete) {
     state.optionOrder = getStableOptionOrder(state.optionOrder, allOptions);
     const options = state.optionOrder;
     const imageHtml = question.media_url
-      ? `<div class="practice-image-wrap"><img src="${html(question.media_url)}" alt="Question image" class="practice-image" /></div>`
+      ? `<div class="practice-image-wrap"><img src="${html(safeMediaUrl(question.media_url))}" alt="Question image" class="practice-image" /></div>`
       : '';
 
     renderFrame(`
@@ -6073,6 +5629,7 @@ function renderModuleQuestionCard(item, sectionIndex, onComplete) {
         markModuleQuestionSubmitted(state, areFitbAnswersCorrect(values, answerGroups));
         replaceCard(block, renderModuleQuestionCard(item, sectionIndex, onComplete));
       };
+      inputs.forEach(input=>input.addEventListener('input',()=>{state.fitbAnswers=inputs.map(el=>el.value);state.text=state.fitbAnswers[0]||'';scheduleDraftSave();}));
       submitBtn?.addEventListener('click', submit);
       inputs.forEach(input => input.addEventListener('keydown', e => {
         if (e.key === 'Enter') {
@@ -6174,7 +5731,7 @@ function renderModuleQuestionCard(item, sectionIndex, onComplete) {
         if (countEl) countEl.textContent = `${words}${wordLimit ? ` / ${wordLimit}` : ''} words`;
         if (submitBtn) submitBtn.disabled = !!(wordLimit && words > wordLimit);
       };
-      textarea?.addEventListener('input', updateCount);
+      textarea?.addEventListener('input', () => { updateCount(); state.text=textarea.value; scheduleDraftSave(); });
       updateCount();
       submitBtn?.addEventListener('click', () => {
         const value = String(textarea?.value || '').trim();
@@ -6367,6 +5924,7 @@ function renderReflectionCard(item, sectionIndex, onComplete) {
     </div>
   `);
   const btn = block.querySelector('.action-btn');
+  block.querySelector('textarea')?.addEventListener('input', e => { state.text=e.target.value; scheduleDraftSave(); });
   if (!state.submitted) btn.addEventListener('click', () => {
     state.text = block.querySelector('textarea').value;
     state.submitted = true;
@@ -6532,7 +6090,7 @@ function renderTraining(structure, savedState = null) {
     accordion.innerHTML = `
       <button class="section-toggle" type="button">
         <span class="section-title-wrap">
-          <strong>Section ${sectionIdx + 1}: ${section.title}</strong>
+          <strong>Section ${sectionIdx + 1}: ${html(section.title)}</strong>
           <span class="section-status">Not started</span>
         </span>
         <span class="section-chevron">▾</span>
@@ -6639,27 +6197,7 @@ function renderTraining(structure, savedState = null) {
 // ─────────────────────────────────────────────
 // COMPLETION + SUBMIT
 // ─────────────────────────────────────────────
-function showCompletion() {
-  const completion = $('completion');
-  completion.style.display = 'block';
-  scrollToEl(completion, 60);
 
-  const elapsed = sessionStart ? Date.now() - sessionStart : 0;
-  $('stat-questions').textContent = totalQuestions;
-  $('stat-correct').textContent   = correctFirst;
-  $('stat-time').textContent      = formatDuration(elapsed);
-
-  logEvent('training_completed', {
-    total_questions: totalQuestions,
-    correct_first:   correctFirst,
-    duration_ms:     elapsed
-  });
-
-  if (!$('btn-submit-final').dataset.bound) {
-    $('btn-submit-final').addEventListener('click', submitSession);
-    $('btn-submit-final').dataset.bound = 'true';
-  }
-}
 
 function buildModuleResponseValues() {
   const itemValues = [];
@@ -6701,7 +6239,7 @@ function buildSubmissionPayload({
 }) {
   const timestamp = now();
   const { itemValues, itemMap } = buildModuleResponseValues();
-  console.log('[submitSession] unified item map', itemMap);
+
 
   return {
     action:            'submitSession',
@@ -6727,116 +6265,9 @@ function buildSubmissionPayload({
   };
 }
 
-async function submitSession() {
-  const btn    = $('btn-submit-final');
-  const status = $('submit-status');
- 
-  btn.disabled = true;
-  btn.textContent = 'Submitting…';
-  status.textContent = '';
 
-  const nowMs = Date.now();
-  const clockSeconds = sessionStart ? Math.max(0, (nowMs - sessionStart) / 1000) : 0;
-  const activeSeconds = computeActiveSeconds(interactionTimes);
-  const clockMinutes = Number((clockSeconds / 60).toFixed(2));
-  const activeMinutes = Number((activeSeconds / 60).toFixed(2));
-  const interactionRate = activeMinutes > 0
-    ? Number((totalQuestions / activeMinutes).toFixed(2))
-    : 0;
-  const deviceType = getDeviceType();
 
-  const payload = buildSubmissionPayload({
-    clockMinutes,
-    activeMinutes,
-    interactionRate,
-    deviceType
-  });
-  
 
-  try {
-    const response = await fetch(SUBMIT_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify(payload),
-      redirect: 'follow'
-    });
-
-    const text = await response.text();
-    let data = null;
-    try { data = JSON.parse(text); }
-    catch (_) { data = { ok: false, error: 'invalid_json_response', raw: text }; }
-
-    if (data && data.ok) {
-      hasSuccessfulSubmission = true;
-      trainingActive = false;
-      completionReached = true;
-      btn.textContent = '✓ Submitted';
-      btn.style.background = '#166534';
-      btn.disabled = true;
-      status.textContent = 'Session data submitted successfully. You may now close this window.';
-      logEvent('session_submitted', { ok: true, fileName: data.fileName });
-    } else {
-      throw new Error(data?.error || 'unknown_error');
-    }
-  } catch (err) {
-    btn.disabled = false;
-    btn.textContent = 'Retry submission';
-    logEvent('session_submit_failed', { error: String(err.message) });
-    offerDownload(payload);
-  }
-}
-
-function offerDownload(payload) {
-  const existing = $('download-backup-wrap');
-  if (existing) return;
-
-  const status = $('submit-status');
-
-  const wrap = document.createElement('div');
-  wrap.id = 'download-backup-wrap';
-  wrap.style.cssText = 'margin-top:14px; padding:14px 16px; background:#fef9ec; border:1px solid #c8a84b; border-radius:10px; font-size:0.88rem; line-height:1.6; color:#10213d;';
-  wrap.innerHTML = `
-    <strong style="display:block; margin-bottom:6px;">Automatic submission failed.</strong>
-    Please save your session data manually (includes per-card response data):
-    <ol style="margin: 8px 0 12px 18px; padding:0;">
-      <li>Click <strong>Download session file</strong> below.</li>
-      <li>Email the downloaded file to <strong>tjin@crimson.ua.edu</strong>.</li>
-    </ol>
-  `;
-
-  const dlBtn = document.createElement('button');
-  dlBtn.className = 'action-btn';
-  dlBtn.style.cssText = 'background:#2f6edc; font-size:0.82rem;';
-  dlBtn.innerHTML = `
-    Download session file (.json)
-    <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" style="flex:0 0 14px">
-      <path d="M7 2v8M3 7l4 4 4-4M2 12h10"/>
-    </svg>
-  `;
-
-  dlBtn.addEventListener('click', () => {
-    const backupPayload = {
-      ...payload,
-      backup_note: 'Contains unified per-card response data in item_values and item_map.'
-    };
-    const blob = new Blob([JSON.stringify(backupPayload, null, 2)], { type: 'application/json' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `${payload.participantEmail || 'session'}_${payload.sessionId || 'data'}.json`;
-    a.click();
-    URL.revokeObjectURL(a.href);
-    logEvent('backup_downloaded', { participant: payload.participantEmail });
-
-    dlBtn.remove();
-    const confirm = document.createElement('p');
-    confirm.style.cssText = 'margin-top:8px; font-size:0.85rem; color:#166534; font-weight:600;';
-    confirm.textContent = '✓ File downloaded. Please email it to tjin@crimson.ua.edu.';
-    wrap.appendChild(confirm);
-  });
-
-  wrap.appendChild(dlBtn);
-  status.insertAdjacentElement('afterend', wrap);
-}
 
 // ─────────────────────────────────────────────
 // IMAGE LIGHTBOX
@@ -6874,6 +6305,7 @@ function offerDownload(payload) {
 // AUTH + DASHBOARD FLOW
 // ─────────────────────────────────────────────
 function resetModuleState() {
+  moduleReviewOnly=false;moduleVersion='';moduleRevision=0;lastModuleFingerprint='';
   moduleTitleText = 'Course Learning Module';
   moduleLabelText = 'Student Learning Module';
   sessionId = makeSessionId((moduleKey || 'module').slice(0, 12));
@@ -6911,7 +6343,7 @@ function setAuthStatus(message, isError = false) {
 }
 
 async function handleGoogleCredentialResponse(response) {
-  console.log("Google credential response:", response);
+
   const idToken = String(response?.credential || '').trim();
   if (!idToken) {
     setAuthStatus('Google sign-in failed. Missing credential token.', true);
@@ -6935,6 +6367,12 @@ async function handleGoogleCredentialResponse(response) {
       throw new Error(data?.error || 'Google login verification failed.');
     }
 
+    if (!data.session_token) throw new Error('The server needs the matching platform update. Please contact your instructor.');
+    if(hasActivePracticeSession())savePracticeSessionToLocal();
+    if(trainingActive)persistProgress();
+    resetPracticeRuntime();
+    hidePracticeQuestionOverlay();
+    sessionToken = data.session_token; sessionExpiresAt = Number(data.session_expires_at || 0);
     currentUserEmail = normalizeIdentityValue(data.email || '');
     if (!currentUserEmail) throw new Error('No email returned by the server.');
     currentUserName = String(data.name || '').trim();
@@ -7403,42 +6841,12 @@ async function loadDashboard() {
   renderDashboard(data);
   showScreen('dashboard');
   maybePromptPracticeRecovery();
+  flushSavedWork();
 }
 
-function askResumeChoice() {
-  return new Promise(resolve => {
-    const modal = $('resume-modal');
-    const continueBtn = $('resume-continue-btn');
-    const startOverBtn = $('resume-startover-btn');
 
-    function cleanup(choice) {
-      continueBtn.removeEventListener('click', onContinue);
-      startOverBtn.removeEventListener('click', onStartOver);
-      modal.style.display = 'none';
-      resolve(choice);
-    }
 
-    function onContinue() { cleanup('continue'); }
-    function onStartOver() { cleanup('startover'); }
 
-    continueBtn.addEventListener('click', onContinue);
-    startOverBtn.addEventListener('click', onStartOver);
-    modal.style.display = 'flex';
-  });
-}
-
-function findSavedProgressForModule(selectedModuleKey) {
-  const saved = loadSavedProgress();
-  if (
-    saved &&
-    normalizeIdentityValue(saved.participantEmail) === currentUserEmail &&
-    saved.moduleKey === selectedModuleKey &&
-    saved.revealedSlots > 1
-  ) {
-    return saved;
-  }
-  return null;
-}
 
 async function launchModuleFromPayload(payload, selectedModuleKey, savedState) {
   const structure = buildStructure(payload.rows);
@@ -7451,7 +6859,7 @@ async function launchModuleFromPayload(payload, selectedModuleKey, savedState) {
 
   document.title = moduleTitleText;
   $('training-module-label').textContent = moduleLabelText;
-  $('training-module-title').innerHTML = moduleTitleText.replace(/\n/g, '<br>');
+  $('training-module-title').textContent = moduleTitleText;
   $('participant-badge').textContent = currentUserName
     ? `${currentUserName} · ${currentUserEmail}`
     : currentUserEmail;
@@ -7468,179 +6876,20 @@ async function launchModuleFromPayload(payload, selectedModuleKey, savedState) {
   });
 }
 
-async function startModuleByKey(selectedModuleKey) {
-  const selectedKey = String(selectedModuleKey || '').trim();
-  if (!selectedKey) {
-    $('dashboard-error').textContent = 'Missing module key.';
-    return;
-  }
 
-  moduleKey = selectedKey;
-  participantEmail = currentUserEmail;
-  participantCode = selectedKey;
-  currentModuleMeta = practiceModules.find(m => m.module_key === selectedKey)
-    || availableModules.find(m => m.module_key === selectedKey)
-    || { module_key: selectedKey };
 
-  const saved = findSavedProgressForModule(selectedKey);
-  let savedState = null;
 
-  if (saved) {
-    if (saved.hasSuccessfulSubmission === true || saved.completionReached === true) {
-      clearSavedProgress();
-      resetModuleState();
-    } else {
-      const choice = await askResumeChoice();
-      if (choice === 'continue') {
-        sessionId = saved.sessionId;
-        sessionStart = saved.sessionStart;
-        totalQuestions = saved.totalQuestions || 0;
-        correctFirst = saved.correctFirst || 0;
-        events = saved.events || [];
-        interactionTimes.length = 0;
-        interactionTimes.push(...(saved.interactionTimes || []));
-        completionReached = !!saved.completionReached;
-        hasSuccessfulSubmission = !!saved.hasSuccessfulSubmission;
-        quizStates = saved.quizStates || {};
-        savedState = saved;
-      } else {
-        clearSavedProgress();
-        resetModuleState();
-      }
-    }
-  } else {
-    resetModuleState();
-  }
 
-  showScreen('loading');
-  try {
-    const payload = await loadTrainingRowsFromSheet(currentUserEmail, selectedKey);
-    await launchModuleFromPayload(payload, selectedKey, savedState);
-  } catch (err) {
-    showScreen('dashboard');
-    $('dashboard-error').textContent = `Failed to load module: ${getFriendlyNetworkMessage(err)}`;
-    logEvent('content_load_failed', { error: String(err.message), module_key: selectedKey });
-  }
-}
 
-async function startModuleByAssignmentKey() {
-  const assignmentKey = String($('assignment-key-input').value || '').trim();
-  $('dashboard-error').textContent = '';
-  if (!assignmentKey) {
-    $('dashboard-error').textContent = 'Please enter an assignment key.';
-    return;
-  }
 
-  showScreen('loading');
-  try {
-    const payload = await loadTrainingByAssignmentKey(currentUserEmail, assignmentKey);
-    const assignedKey = String(payload.moduleKey || '').trim();
-    if (!assignedKey) throw new Error('The assignment did not return a module key.');
 
-    const saved = findSavedProgressForModule(assignedKey);
-    let savedState = null;
-
-    moduleKey = assignedKey;
-    participantEmail = currentUserEmail;
-    participantCode = assignedKey;
-
-    if (saved) {
-      if (saved.hasSuccessfulSubmission === true || saved.completionReached === true) {
-        clearSavedProgress();
-        resetModuleState();
-      } else {
-        const choice = await askResumeChoice();
-        if (choice === 'continue') {
-          sessionId = saved.sessionId;
-          sessionStart = saved.sessionStart;
-          totalQuestions = saved.totalQuestions || 0;
-          correctFirst = saved.correctFirst || 0;
-          events = saved.events || [];
-          interactionTimes.length = 0;
-          interactionTimes.push(...(saved.interactionTimes || []));
-          completionReached = !!saved.completionReached;
-          hasSuccessfulSubmission = !!saved.hasSuccessfulSubmission;
-          quizStates = saved.quizStates || {};
-          savedState = saved;
-        } else {
-          clearSavedProgress();
-          resetModuleState();
-        }
-      }
-    } else {
-      resetModuleState();
-    }
-
-    await launchModuleFromPayload(payload, assignedKey, savedState);
-  } catch (err) {
-    showScreen('dashboard');
-    $('dashboard-error').textContent = getFriendlyNetworkMessage(err) || 'Unable to load assignment.';
-  }
-}
-
-async function startModuleByCode() {
-  const moduleCode = String($('assignment-key-input').value || '').trim();
-  $('dashboard-error').textContent = '';
-  if (!moduleCode) {
-    $('dashboard-error').textContent = 'Please enter a module code.';
-    return;
-  }
-
-  showScreen('loading');
-  try {
-    const payload = await loadTrainingByCode(currentUserEmail, moduleCode);
-    const resolvedModuleKey = String(payload.moduleKey || '').trim();
-    if (!resolvedModuleKey) throw new Error('The module code did not return a module key.');
-
-    const saved = findSavedProgressForModule(resolvedModuleKey);
-    let savedState = null;
-
-    moduleKey = resolvedModuleKey;
-    participantEmail = currentUserEmail;
-    participantCode = resolvedModuleKey;
-
-    if (saved) {
-      if (saved.hasSuccessfulSubmission === true || saved.completionReached === true) {
-        clearSavedProgress();
-        resetModuleState();
-      } else {
-        const choice = await askResumeChoice();
-        if (choice === 'continue') {
-          sessionId = saved.sessionId;
-          sessionStart = saved.sessionStart;
-          totalQuestions = saved.totalQuestions || 0;
-          correctFirst = saved.correctFirst || 0;
-          events = saved.events || [];
-          interactionTimes.length = 0;
-          interactionTimes.push(...(saved.interactionTimes || []));
-          completionReached = !!saved.completionReached;
-          hasSuccessfulSubmission = !!saved.hasSuccessfulSubmission;
-          quizStates = saved.quizStates || {};
-          savedState = saved;
-        } else {
-          clearSavedProgress();
-          resetModuleState();
-        }
-      }
-    } else {
-      resetModuleState();
-    }
-
-    await launchModuleFromPayload(payload, resolvedModuleKey, savedState);
-  } catch (err) {
-    showScreen('dashboard');
-    $('dashboard-error').textContent = getFriendlyNetworkMessage(err) || 'Unable to load module.';
-  }
-}
-
-async function handleSaveAndExit() {
-  await persistProgress({ immediate: true });
-  trainingActive = false;
-  showScreen('dashboard');
-  await loadDashboard();
-}
 
 function logoutToAuth() {
+  if(hasActivePracticeSession())savePracticeSessionToLocal();
+  if(trainingActive)persistProgress();
+  sessionToken='';sessionExpiresAt=0;
+  resetPracticeRuntime();
+  hidePracticeQuestionOverlay();
 
   clearCachedPracticeTopics();
   clearAuthSession();
@@ -7662,6 +6911,415 @@ function logoutToAuth() {
 // ─────────────────────────────────────────────
 // BOOT
 // ─────────────────────────────────────────────
+// Reliability v3: local saves are immediate; one background worker syncs queued work.
+let sessionToken = '';
+let sessionExpiresAt = 0;
+let moduleVersion = '';
+let moduleRevision = 0;
+let moduleReplaceSessionId = '';
+let saveWorker = null;
+let saveWorkerTimer = null;
+let lastModuleFingerprint = '';
+let lastModuleSavedAt = 0;
+let localSaveFailure = false;
+const SAVE_DELAY_MS = 20000;
+const memoryOutboxes = {};
+let draftSaveTimer=null;
+function scheduleDraftSave(practice=false) {
+  clearTimeout(draftSaveTimer);
+  draftSaveTimer=setTimeout(()=>{draftSaveTimer=null;if(practice)savePracticeSessionToLocal();else persistProgress();},300);
+}
+
+function saveNotice(message, needsSignIn = false) {
+  let el = document.getElementById('save-notice');
+  if (!el) {
+    el = document.createElement('div'); el.id = 'save-notice'; el.setAttribute('role','status'); el.setAttribute('aria-live','polite');
+    el.style.cssText = 'position:fixed;bottom:12px;left:12px;right:12px;z-index:10020;padding:10px 14px;border-radius:8px;background:#fff4d6;color:#10213d;box-shadow:0 2px 10px #0002;font-size:14px;';
+    document.body.appendChild(el);
+  }
+  el.replaceChildren(); el.hidden = !message;
+  if (!message) return;
+  el.append(document.createTextNode(message));
+  if (needsSignIn) {
+    const button = document.createElement('button'); button.type='button'; button.className='action-btn secondary'; button.textContent='Sign in again';
+    button.addEventListener('click',()=>{clearAuthSession();sessionToken='';isAuthenticated=false;showScreen('auth');initializeGoogleSignIn();});
+    el.append(button);
+  }
+}
+function storedJSON(key, fallback = null) {
+  try { return JSON.parse(localStorage.getItem(key)) || fallback; } catch (_) { return fallback; }
+}
+function storeJSON(key, value) {
+  try { localStorage.setItem(key,JSON.stringify(value)); localSaveFailure=false; return true; }
+  catch (_) { localSaveFailure=true; saveNotice('This browser could not save a recovery copy. Keep this page open until your work is synced.'); return false; }
+}
+function practiceStorageKey(email = currentUserEmail) { return 'practice_progress_v3:' + normalizeIdentityValue(email); }
+function moduleStorageKey(key = moduleKey, email = currentUserEmail) { return 'module_progress_v3:' + normalizeIdentityValue(email) + ':' + key; }
+function outboxKey(email = currentUserEmail) { return 'pending_saves_v3:' + normalizeIdentityValue(email); }
+function readOutbox(email = currentUserEmail) { return memoryOutboxes[email] || storedJSON(outboxKey(email),{}); }
+function writeOutbox(box,email = currentUserEmail) {
+  if(storeJSON(outboxKey(email),box)){delete memoryOutboxes[email];return true;}
+  memoryOutboxes[email]=box;return false;
+}
+function resetPracticeRuntime() {
+  practiceTestState={questions:[],questionCount:0,currentIndex:0,sessionId:'',startedAt:null,
+    selectedCourse:'',selectedTopics:[],requestedQuestionCount:10,answers:{},answerState:{},
+    sessionComplete:false,practiceTopicsLoaded:false,practiceTopicsLoading:false,
+    feedbackByQuestionId:{},results:[],resultsSubmitted:false,correctCount:0,incorrectCount:0};
+}
+function showModuleSubmitted() {
+  hasSuccessfulSubmission=true;trainingActive=false;
+  const button=$('btn-submit-final'),status=$('submit-status'),completion=$('completion');
+  if(button){button.disabled=true;button.textContent='✓ Submitted';}
+  if(status)status.textContent='Responses submitted successfully.';
+  if(completion){
+    completion.querySelector('.completion-title').textContent='Module completed';
+    completion.querySelector('.completion-sub').textContent='Your responses have been submitted.';
+  }
+  $('download-backup-wrap')?.remove();
+}
+function queueSave(key, kind, payload) {
+  if (!currentUserEmail) return false;
+  const box = readOutbox();
+  const fingerprint = JSON.stringify(payload);
+  if (box[key]?.fingerprint === fingerprint) return true;
+  box[key] = {kind,payload,fingerprint};
+  writeOutbox(box);
+  if (!saveWorkerTimer) saveWorkerTimer=setTimeout(()=>{saveWorkerTimer=null;flushSavedWork();},SAVE_DELAY_MS);
+  return true;
+}
+function queuePracticeSave() {
+  if (!practiceTestState.results?.length || !practiceTestState.sessionId) return;
+  const ids = new Set(practiceTestState.results.map(r=>r.item_id));
+  const payload = {action:'submitPracticeResults',email:currentUserEmail,session_id:practiceTestState.sessionId,
+    question_results:practiceTestState.results.map(r=>({item_id:r.item_id,topic:r.topic,is_correct:r.is_correct})),
+    question_feedback:getAllQuestionFeedbackForSubmit().filter(f=>ids.has(f.item_id)),
+    resume_state:buildPracticeSessionSnapshot()};
+  queueSave('practice:'+payload.session_id,'practice',payload);
+}
+async function flushSavedWork() {
+  if (saveWorker) return saveWorker;
+  if (!currentUserEmail || !sessionToken || !navigator.onLine) return {ok:false,pending:true};
+  const email=currentUserEmail;
+  saveWorker=(async()=>{
+    const entries=Object.entries(readOutbox(email)); let success=true;
+    for (const [key,entry] of entries) {
+      if (currentUserEmail !== email) break;
+      try {
+        const response=await postToAppsScript(entry.kind==='practice'?PRACTICE_API_URL:LOAD_URL,entry.payload,{retries:1,timeoutMs:30000});
+        if (!response?.ok) {
+          success=false;
+          saveNotice(response?.code==='auth_required'?'Your work is saved on this device. Sign in again to sync it.':(response?.error || 'Your work is saved on this device and is waiting to sync.'),response?.code==='auth_required');
+          if(response?.code==='auth_required')break;
+          continue;
+        }
+        const latest=readOutbox(email);
+        if(latest[key]?.fingerprint===entry.fingerprint){delete latest[key];writeOutbox(latest,email);}
+        if(entry.kind==='practice' && practiceTestState.sessionId===entry.payload.session_id) {
+          practiceTestState.resultsSubmitted = !readOutbox(email)[key];
+          if(practiceTestState.resultsSubmitted && entry.payload.resume_state?.sessionComplete){
+            const status=$('practice-save-status');if(status)status.textContent='Results saved.';
+            clearPracticeSessionFromLocal();
+          }
+        }
+        if(entry.kind==='module-final') {
+          const storageKey=moduleStorageKey(entry.payload.module_key,email); const saved=storedJSON(storageKey);
+          if(saved?.sessionId===entry.payload.sessionId){saved.hasSuccessfulSubmission=true;saved.saveStatus='submitted';storeJSON(storageKey,saved);}
+          if(currentUserEmail===email&&sessionId===entry.payload.sessionId)showModuleSubmitted();
+        }
+      } catch (_) { success=false;saveNotice('Connection unavailable. Your work is saved on this device and will retry when you return.'); }
+    }
+    const pending=Object.keys(readOutbox(email)).length;
+    if(!pending&&!localSaveFailure)saveNotice('');
+    return {ok:success&&!pending,pending:pending>0};
+  })();
+  try{return await saveWorker;}finally{saveWorker=null;}
+}
+function saveAuthSession() {
+  storeJSON(AUTH_STORAGE_KEY,{email:currentUserEmail,name:currentUserName,isAuthenticated:!!isAuthenticated,session_token:sessionToken,session_expires_at:sessionExpiresAt});
+}
+function loadAuthSession() {
+  const saved=storedJSON(AUTH_STORAGE_KEY);
+  if(!saved?.session_token||Number(saved.session_expires_at)<=Date.now())return null;
+  sessionToken=saved.session_token;sessionExpiresAt=Number(saved.session_expires_at);return saved;
+}
+function makeSessionId(code = 'session') {
+  const id=crypto.randomUUID?crypto.randomUUID():Array.from(crypto.getRandomValues(new Uint32Array(4)),n=>n.toString(16)).join('-');
+  return String(code).replace(/[^A-Za-z0-9_-]/g,'_').slice(0,32)+'-'+id;
+}
+function buildPracticeSessionSnapshot() {
+  return {schemaVersion:3,savedAt:Date.now(),participantEmail:currentUserEmail,sessionId:practiceTestState.sessionId,
+    startedAt:practiceTestState.startedAt,selectedCourse:practiceTestState.selectedCourse,selectedTopics:practiceTestState.selectedTopics,
+    questionCount:practiceTestState.questionCount,questions:practiceTestState.questions,currentIndex:practiceTestState.currentIndex,
+    answers:practiceTestState.answers,answerState:practiceTestState.answerState,results:practiceTestState.results,
+    feedbackByQuestionId:practiceTestState.feedbackByQuestionId,sessionComplete:!!practiceTestState.sessionComplete};
+}
+function savePracticeSessionToLocal() {
+  if(!currentUserEmail||!practiceTestState.questions?.length)return;
+  storeJSON(practiceStorageKey(),buildPracticeSessionSnapshot());
+  practiceTestState.resultsSubmitted=false;queuePracticeSave();
+}
+function loadPracticeSessionFromLocal() {
+  const saved=storedJSON(practiceStorageKey()); if(saved)return saved;
+  const legacy=storedJSON(PRACTICE_SESSION_STORAGE_KEY);
+  if(legacy&&normalizeIdentityValue(legacy.participantEmail)===currentUserEmail)return legacy;
+  return null;
+}
+function clearPracticeSessionFromLocal() {
+  try {
+    localStorage.removeItem(practiceStorageKey());
+    const legacy=storedJSON(PRACTICE_SESSION_STORAGE_KEY);
+    if(legacy&&normalizeIdentityValue(legacy.participantEmail)===currentUserEmail)localStorage.removeItem(PRACTICE_SESSION_STORAGE_KEY);
+  } catch (_) {}
+}
+function isRecoverablePracticeSession(snapshot) {
+  return !!(snapshot && normalizeIdentityValue(snapshot.participantEmail)===currentUserEmail &&
+    Array.isArray(snapshot.questions)&&snapshot.questions.length&& !snapshot.sessionComplete &&
+    (snapshot.schemaVersion===3||!snapshot.questions.some(q=>q.item_id==='HA_intro_MCQ_1')));
+}
+async function submitPracticeResultsAndUpdateDashboard() {
+  if(!practiceTestState.results?.length)return {ok:true,skipped:true};
+  savePracticeSessionToLocal();queuePracticeSave();await flushSavedWork();
+  const pending=readOutbox()['practice:'+practiceTestState.sessionId];
+  return {ok:!pending,pending:!!pending};
+}
+async function submitFinalPracticeResults() {
+  practiceTestState.sessionComplete=true;
+  savePracticeSessionToLocal();
+  renderPracticeResultsSummary();
+  const container=document.getElementById('practice-question-container');
+  const status=document.createElement('p');status.id='practice-save-status';status.setAttribute('role','status');status.textContent='Saving results…';container?.appendChild(status);
+  const result=await submitPracticeResultsAndUpdateDashboard();
+  status.textContent=result.ok?'Results saved.':'Results saved on this device; waiting to sync.';
+  if(result.ok)clearPracticeSessionFromLocal();
+}
+async function returnToDashboard() {
+  if(practiceTestState.returningToDashboard)return;
+  practiceTestState.returningToDashboard=true;
+  try {
+    savePracticeSessionToLocal();flushSavedWork();
+    hidePracticeQuestionOverlay();
+    $('training').style.display='none';$('dashboard').style.display='block';showDashboardView('practice');
+    await initializePracticeSetup();
+    const saved=loadPracticeSessionFromLocal();
+    if(isRecoverablePracticeSession(saved)){
+      const note=$('practice-setup-message');note.replaceChildren(document.createTextNode('Your unfinished quiz is saved. '));
+      const button=document.createElement('button');button.type='button';button.className='action-btn secondary';button.textContent='Resume quiz';
+      button.addEventListener('click',()=>{restorePracticeSessionFromSnapshot(saved);showPracticeQuestionOverlay();renderCurrentPracticeQuestion();});note.append(button);
+    }
+  }finally{practiceTestState.returningToDashboard=false;}
+}
+function normalizeGradedText(value) {
+  return String(value??'').normalize('NFKC').trim().toLowerCase().replace(/[’‘]/g,"'").replace(/[−–]/g,'-').replace(/\s+/g,' ');
+}
+function isFitbAnswerCorrect(userAnswer, acceptedAnswers) {
+  const user=normalizeGradedText(userAnswer);if(!user)return false;
+  const number=/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$/;
+  return (Array.isArray(acceptedAnswers)?acceptedAnswers:[]).some(answer=>{
+    const expected=normalizeGradedText(answer);
+    if(number.test(user)&&number.test(expected))return Number(user)===Number(expected);
+    return user===expected;
+  });
+}
+function safeMediaUrl(value) {
+  try {const url=new URL(String(value||''),location.href);return ['http:','https:'].includes(url.protocol)?url.href:'';}catch(_){return '';}
+}
+function safeRichText(value) {
+  const text=String(value||'');
+  if(!/<\/?[a-z][^>]*>/i.test(text))return formatBodyText(text);
+  const template=document.createElement('template');template.innerHTML=text;
+  const allowed=new Set(['P','BR','STRONG','B','EM','I','U','UL','OL','LI','TABLE','THEAD','TBODY','TR','TH','TD','SUB','SUP','SPAN','DIV','BLOCKQUOTE','CODE']);
+  [...template.content.querySelectorAll('*')].forEach(node=>{
+    if(['SCRIPT','STYLE','IFRAME','OBJECT','EMBED','LINK','META','SVG','MATH'].includes(node.tagName)){node.remove();return;}
+    if(!allowed.has(node.tagName)){node.replaceWith(...node.childNodes);return;}
+    [...node.attributes].forEach(attr=>node.removeAttribute(attr.name));
+  });
+  return template.innerHTML;
+}
+function buildPracticeRationaleHtml(feedback) {
+  return feedback?'<div class="practice-rationale"><strong>Feedback</strong><div>'+safeRichText(feedback)+'</div></div>':'';
+}
+async function maybePromptPracticeRecovery() {
+  let snapshot=loadPracticeSessionFromLocal();
+  if(!snapshot){
+    try{
+      const result=await postToAppsScript(PRACTICE_API_URL,{action:'getPracticeProgress'},{retries:0});
+      if(result?.ok&&result.snapshot){snapshot=result.snapshot;storeJSON(practiceStorageKey(),snapshot);}
+    }catch(_){}
+  }
+  if(!isRecoverablePracticeSession(snapshot)||trainingActive||hasActivePracticeSession()||$('dashboard').style.display==='none')return;
+  const recoveredCourse=inferPlatformCourseFromPracticeName(snapshot.selectedCourse);
+  if(recoveredCourse){selectedPlatformCourseKey=recoveredCourse.key;updateSelectedCourseUi();}
+  showDashboardView('practice');showPracticeQuestionOverlay();renderPracticeRecoveryPrompt(snapshot);
+}
+let moduleReviewOnly=false;
+
+function moduleSnapshot() {
+  const cards=allSections.flatMap(section=>section.cards||[]);
+  return {schemaVersion:3,participantCode,participantEmail,moduleKey,moduleTitleText,moduleLabelText,moduleVersion,
+    sessionId,sessionStart,revealedSlots,completedSlotIndices:[...completedSlots],totalQuestions,correctFirst,events,
+    interactionTimes:[...interactionTimes],completionReached,hasSuccessfulSubmission,quizStates,
+    cardIds:cards.map(card=>card.cardId),replaceSessionId:moduleReplaceSessionId};
+}
+function saveLocalProgress() {
+  if(!participantEmail||!moduleKey||moduleReviewOnly)return null;
+  const snapshot=moduleSnapshot();const fingerprint=JSON.stringify(snapshot);
+  if(fingerprint!==lastModuleFingerprint){moduleRevision++;lastModuleFingerprint=fingerprint;lastModuleSavedAt=Date.now();}
+  snapshot.revision=moduleRevision||1;snapshot.savedAt=lastModuleSavedAt;
+  storeJSON(moduleStorageKey(),snapshot);return snapshot;
+}
+function buildProgressPayload() {
+  if(!participantEmail||!moduleKey||moduleReviewOnly)return null;
+  const state=saveLocalProgress();if(!state)return null;
+  return {action:'saveProgress',email:participantEmail,module_key:moduleKey,progress_percent:totalSlots?Math.round(completedSlots.size/totalSlots*100):0,
+    last_section:allSections[progressionSectionIndex]?.title||'',progress_state:state,replace_session_id:moduleReplaceSessionId};
+}
+function persistProgress(options = {}) {
+  const payload=buildProgressPayload();if(!payload)return Promise.resolve({ok:true,skipped:true});
+  queueSave('module:'+sessionId,'module-progress',payload);
+  return options.immediate?flushSavedWork():Promise.resolve({ok:true,savedLocally:!localSaveFailure});
+}
+function scheduleProgressSync() { persistProgress(); }
+async function syncProgressToServer() { return persistProgress({immediate:true}); }
+async function flushProgressToServer() { return persistProgress({immediate:true}); }
+function loadSavedProgress() { return storedJSON(moduleStorageKey()) || storedJSON(STORAGE_KEY); }
+function clearSavedProgress() {
+  try {
+    localStorage.removeItem(moduleStorageKey());
+    const legacy=storedJSON(STORAGE_KEY);
+    if(legacy?.moduleKey===moduleKey&&normalizeIdentityValue(legacy.participantEmail)===currentUserEmail)localStorage.removeItem(STORAGE_KEY);
+  }catch(_){}
+}
+function findSavedProgressForModule(key) {
+  const saved=storedJSON(moduleStorageKey(key))||storedJSON(STORAGE_KEY);
+  return saved&&normalizeIdentityValue(saved.participantEmail)===currentUserEmail&&saved.moduleKey===key?saved:null;
+}
+async function loadTrainingRowsFromSheet(email,key) {
+  const data=await postToAppsScript(LOAD_URL,{action:'loadTraining',email,module_key:key});
+  if(!data?.ok||!Array.isArray(data.rows)||!data.rows.length)throw new Error(data?.error||'Unable to load this module.');
+  return data;
+}
+async function loadTrainingByCode(email,code) {
+  const data=await postToAppsScript(LOAD_URL,{action:'loadTrainingByCode',email,code});
+  if(!data?.ok||!Array.isArray(data.rows)||!data.rows.length)throw new Error(data?.error||'Unable to load this module.');
+  return data;
+}
+async function loadTrainingByAssignmentKey(email,key) { return loadTrainingByCode(email,key); }
+function askResumeChoice(options = {}) {
+  return new Promise(resolve=>{
+    const modal=$('resume-modal'),cont=$('resume-continue-btn'),restart=$('resume-startover-btn');
+    const completed=options.saved?.hasSuccessfulSubmission||options.saved?.saveStatus==='submitted';
+    const changed=!!options.changed;
+    modal.querySelector('h3').textContent=changed?'This module has been updated':completed?'Review completed module?':'Resume your module?';
+    modal.querySelector('p').textContent=changed?'Your earlier responses are retained. Start the updated module when you are ready.':'Your saved answers and place in the module are available.';
+    cont.hidden=changed;cont.textContent=completed?'Review completed module':'Continue where I left off';
+    restart.textContent=changed?'Start updated module':'Start over';
+    let backup=null;
+    if(changed){backup=document.createElement('button');backup.className='action-btn secondary';backup.textContent='Download previous progress';backup.addEventListener('click',()=>downloadJSON(options.saved,'module-progress-backup.json'));modal.querySelector('.resume-modal-actions').append(backup);}
+    const cleanup=choice=>{cont.removeEventListener('click',resume);restart.removeEventListener('click',fresh);backup?.remove();modal.style.display='none';resolve(choice);};
+    const resume=()=>cleanup('continue'),fresh=()=>cleanup('startover');
+    cont.addEventListener('click',resume);restart.addEventListener('click',fresh);modal.style.display='flex';(changed?restart:cont).focus();
+  });
+}
+async function startModuleReliably(key,byCode=false) {
+  if(!String(key||'').trim()){$('dashboard-error').textContent='Please enter a module code.';return;}
+  if(trainingActive)persistProgress();
+  showScreen('loading');
+  try {
+    const payload=byCode?await loadTrainingByCode(currentUserEmail,key):await loadTrainingRowsFromSheet(currentUserEmail,key);
+    const resolved=payload.moduleKey;const local=findSavedProgressForModule(resolved);const remote=payload.savedProgress;
+    let saved=remote;
+    if(local&&(!remote||(local.sessionId===remote.sessionId&&Number(local.revision||0)>=Number(remote.revision||0))||local.replaceSessionId===remote.sessionId))saved=local;
+    moduleKey=resolved;participantEmail=currentUserEmail;participantCode=resolved;
+    let choice=saved?await askResumeChoice({saved,changed:saved.schemaVersion!==3||saved.moduleVersion!==payload.moduleVersion}):'startover';
+    moduleReviewOnly=false;resetModuleState();moduleVersion=payload.moduleVersion;moduleRevision=0;lastModuleFingerprint='';
+    moduleReplaceSessionId=remote?.sessionId||'';
+    let savedState=null;
+    if(saved&&choice==='continue'){
+      sessionId=saved.sessionId;sessionStart=saved.sessionStart||Date.now();moduleRevision=Number(saved.revision||0);
+      events=saved.events||[];interactionTimes.length=0;interactionTimes.push(...(saved.interactionTimes||[]));
+      quizStates=saved.quizStates||{};totalQuestions=saved.totalQuestions||0;correctFirst=saved.correctFirst||0;
+      completionReached=!!saved.completionReached;hasSuccessfulSubmission=!!saved.hasSuccessfulSubmission||saved.saveStatus==='submitted';
+      moduleReviewOnly=hasSuccessfulSubmission;savedState=saved;
+    }else if(saved){
+      // Explicit restart keeps a recoverable copy and retires this browser's pending saves for the older session.
+      storeJSON(moduleStorageKey(resolved)+':archive:'+saved.sessionId,saved);
+      const box=readOutbox();delete box['module:'+saved.sessionId];delete box['module-final:'+saved.sessionId];writeOutbox(box);
+    }
+    await launchModuleFromPayload(payload,resolved,savedState);
+    if(moduleReviewOnly){$('btn-save-exit').textContent='Back to dashboard';}
+    else $('btn-save-exit').textContent='Save and exit';
+  }catch(error){showScreen('dashboard');$('dashboard-error').textContent=getFriendlyNetworkMessage(error);}
+}
+async function startModuleByKey(key) { return startModuleReliably(key,false); }
+async function startModuleByCode() { return startModuleReliably(String($('assignment-key-input').value||'').trim(),true); }
+async function startModuleByAssignmentKey() { return startModuleByCode(); }
+function buildSubmissionPayload({clockMinutes,activeMinutes,interactionRate,deviceType}) {
+  const {itemValues,itemMap}=buildModuleResponseValues();const cards=allSections.flatMap(section=>section.cards||[]);
+  const cardResponses={};cards.forEach((card,i)=>{cardResponses[card.cardId||'legacy_'+i]=itemValues[i];});
+  const progress=buildProgressPayload();
+  return {...progress,action:'submitSession',participantEmail,participantCode,moduleKey,sessionId,sessionStart:new Date(sessionStart).toISOString(),sessionEnd:now(),
+    totalQuestions,completionReached,clock_minutes:clockMinutes,active_minutes:activeMinutes,interaction_rate:interactionRate,device_type:deviceType,
+    item_values:itemValues,item_map:itemMap,item_count:itemValues.length,card_responses:cardResponses};
+}
+function showCompletion() {
+  $('completion').style.display='block';scrollToEl($('completion'),60);
+  $('stat-questions').textContent=totalQuestions;$('stat-correct').textContent=correctFirst;$('stat-time').textContent=formatDuration(Date.now()-sessionStart);
+  const btn=$('btn-submit-final');
+  if(!btn.dataset.bound){btn.addEventListener('click',submitSession);btn.dataset.bound='true';}
+  if(hasSuccessfulSubmission||moduleReviewOnly){
+    $('completion').querySelector('.completion-title').textContent='Module completed';
+    $('completion').querySelector('.completion-sub').textContent='Your responses have been submitted. You can review them here.';
+    btn.textContent='✓ Submitted';btn.disabled=true;return;
+  }
+  $('completion').querySelector('.completion-title').textContent='Module finished';
+  $('completion').querySelector('.completion-sub').textContent='Your responses are being saved. You can return to the dashboard.';
+  btn.disabled=false;btn.textContent='Save responses';
+  setTimeout(()=>{if(completionReached&&!hasSuccessfulSubmission&&!moduleReviewOnly)submitSession();},0);
+}
+async function submitSession() {
+  if(moduleReviewOnly||hasSuccessfulSubmission)return;
+  const btn=$('btn-submit-final');const status=$('submit-status');
+  const clockMinutes=Number(((Date.now()-sessionStart)/60000).toFixed(2));const activeMinutes=Number((computeActiveSeconds(interactionTimes)/60).toFixed(2));
+  const payload=buildSubmissionPayload({clockMinutes,activeMinutes,interactionRate:activeMinutes?totalQuestions/activeMinutes:0,deviceType:getDeviceType()});
+  if(!payload.progress_state)return;
+  saveLocalProgress();queueSave('module-final:'+sessionId,'module-final',payload);
+  btn.disabled=true;btn.textContent='Saving…';status.textContent='Responses saved on this device. Syncing…';
+  const submittedSession=sessionId;await flushSavedWork();
+  if(sessionId!==submittedSession)return;
+  if(!readOutbox()['module-final:'+submittedSession]){
+    hasSuccessfulSubmission=true;trainingActive=false;saveLocalProgress();btn.disabled=true;btn.textContent='✓ Submitted';status.textContent='Responses submitted successfully.';
+    $('completion').querySelector('.completion-title').textContent='Module completed';
+    $('completion').querySelector('.completion-sub').textContent='Your responses have been submitted.';
+  }else{
+    btn.disabled=false;btn.textContent='Retry save';status.textContent='Responses saved on this device and waiting to sync. You can return later.';offerDownload(payload);
+  }
+}
+async function handleSaveAndExit() {
+  if(!moduleReviewOnly){persistProgress();flushSavedWork();}
+  trainingActive=false;showScreen('dashboard');await loadDashboard();
+}
+function downloadJSON(payload,name) {
+  const url=URL.createObjectURL(new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}));
+  const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+function offerDownload(payload) {
+  if($('download-backup-wrap'))return;
+  const wrap=document.createElement('div');wrap.id='download-backup-wrap';
+  const button=document.createElement('button');button.type='button';button.className='action-btn secondary';button.textContent='Download a backup';
+  button.addEventListener('click',()=>downloadJSON(payload,'module-'+payload.sessionId+'.json'));wrap.append(button);$('submit-status').after(wrap);
+}
+
+
+window.addEventListener('online', () => flushSavedWork());
+document.addEventListener('visibilitychange', () => {
+  if(document.visibilityState==='hidden') {
+    if(hasActivePracticeSession())savePracticeSessionToLocal();
+    if(trainingActive)persistProgress();
+  } else flushSavedWork();
+});
+setInterval(() => { if(currentUserEmail && Object.keys(readOutbox()).length)flushSavedWork(); },60000);
+
 document.addEventListener('DOMContentLoaded', async () => {
   console.info('Learning Platform build:', PLATFORM_BUILD);
   $('last-updated').textContent = document.lastModified;
