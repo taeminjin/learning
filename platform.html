@@ -2391,7 +2391,7 @@
 const LOAD_URL = 'https://script.google.com/macros/s/AKfycbyxevT1EWOj_IgdmL2oFiubBWc3b1BC5BnUuCL5-w0PxLjVPE9xsO_m_3RoIgqZ9mvO_A/exec';
 const SUBMIT_URL = LOAD_URL;
 const PRACTICE_API_URL = 'https://script.google.com/macros/s/AKfycbyGXa8KdMd5kYJrkOew56oljtPPNvKpNxMnMf1IsHp2C0XAeth7fP-MDhzPlkhUvPXlpQ/exec';
-const PLATFORM_BUILD = '2026-10-06-performance-keyboard-v4';
+const PLATFORM_BUILD = '2026-10-06-restart-prefetch-v5';
 const PRACTICE_SESSION_STORAGE_KEY = 'inProgressPracticeSession';
 const GOOGLE_CLIENT_ID = '534534627380-bd6hjuj4ihbf6i7r2qsjnen6cqhm14ma.apps.googleusercontent.com';
 
@@ -3685,7 +3685,7 @@ async function submitPracticeResults(results) {
   return await submitPracticeResultsAndUpdateDashboard();
 }
 
-async function startPracticeSessionWithSettings(selectedTopics, questionCount) {
+async function startPracticeSessionWithSettings(selectedTopics, questionCount, options = {}) {
   const topics = Array.isArray(selectedTopics)
     ? selectedTopics.map(topic => String(topic || '').trim()).filter(Boolean)
     : [];
@@ -3703,7 +3703,18 @@ async function startPracticeSessionWithSettings(selectedTopics, questionCount) {
     throw new Error('No signed-in user email was found.');
   }
 
-  savePracticeSessionToLocal();
+  const sourceSessionId = String(options.prefetchSourceSessionId || practiceTestState.sessionId || '');
+  let prefetchedQuestions = null;
+  if (options.preferPrefetched) {
+    if (practiceFinalizationPromise) {
+      try { await practiceFinalizationPromise; } catch (_) {}
+    }
+    prefetchedQuestions = await consumePrefetchedPracticeSet(topics, count, sourceSessionId);
+  } else {
+    clearPracticeNextSetPrefetch();
+  }
+
+  if (!practiceTestState.sessionComplete) savePracticeSessionToLocal();
 
   // Reset session state immediately before loading fresh questions.
   practiceTestState.questions = [];
@@ -3729,24 +3740,28 @@ async function startPracticeSessionWithSettings(selectedTopics, questionCount) {
   showPracticeQuestionOverlay();
 
   try {
-    // Render loading state directly into the real question container.
-    renderPracticeRestartLoadingState();
-
-    const data = await postToAppsScript(PRACTICE_API_URL, {
-      action: 'getPracticeQuestions',
-      email,
-      course: String(practiceTestState.selectedCourse || '').trim(),
-      topics,
-      question_count: count
-    }, {
-      retries: 1,
-      retryDelayMs: 800,
-      timeoutMs: 20000,
-      onRetry: () => {
-        const loading = $('practice-question-container')?.querySelector('.practice-restart-loading-state p');
-        if (loading) loading.textContent = 'Questions are taking longer than usual. Retrying…';
-      }
-    });
+    let data = null;
+    if (prefetchedQuestions && prefetchedQuestions.length) {
+      data = { ok: true, question_set: prefetchedQuestions };
+    } else {
+      // Render loading state only when a background-prepared set is unavailable.
+      renderPracticeRestartLoadingState();
+      data = await postToAppsScript(PRACTICE_API_URL, {
+        action: 'getPracticeQuestions',
+        email,
+        course: String(practiceTestState.selectedCourse || '').trim(),
+        topics,
+        question_count: count
+      }, {
+        retries: 1,
+        retryDelayMs: 800,
+        timeoutMs: 20000,
+        onRetry: () => {
+          const loading = $('practice-question-container')?.querySelector('.practice-restart-loading-state p');
+          if (loading) loading.textContent = 'Questions are taking longer than usual. Retrying…';
+        }
+      });
+    }
     if (!data || data.ok !== true) {
       throw new Error(data?.error || 'Unable to load practice questions.');
     }
@@ -4027,17 +4042,23 @@ function renderPracticeResultsSummary() {
     </div>
   `;
 
+  const restartSourceSessionId = String(practiceTestState.sessionId || '');
   const restartBtn = container.querySelector("#practice-restart-btn");
   if (restartBtn) {
     restartBtn.addEventListener("click", async () => {
       restartBtn.disabled = true;
+      restartBtn.textContent = 'Starting…';
       try {
-        await startPracticeSessionWithSettings(restartTopics, restartQuestionCount);
+        await startPracticeSessionWithSettings(restartTopics, restartQuestionCount, {
+          preferPrefetched: true,
+          prefetchSourceSessionId: restartSourceSessionId
+        });
       } catch (error) {
         console.error("Failed to restart practice session:", error);
         alert("Could not restart practice session: " + (error.message || "Unknown error"));
       } finally {
         restartBtn.disabled = false;
+        restartBtn.textContent = 'Practice again with same settings';
       }
     });
   }
@@ -6941,6 +6962,8 @@ let localSaveFailure = false;
 const SAVE_DELAY_MS = 20000;
 const memoryOutboxes = {};
 let draftSaveTimer=null;
+let practiceNextSetPrefetch = null;
+let practiceFinalizationPromise = null;
 function scheduleDraftSave(practice=false) {
   clearTimeout(draftSaveTimer);
   draftSaveTimer=setTimeout(()=>{draftSaveTimer=null;if(practice)savePracticeSessionToLocal();else persistProgress();},300);
@@ -6982,6 +7005,60 @@ function resetPracticeRuntime() {
     selectedCourse:'',selectedTopics:[],requestedQuestionCount:10,answers:{},answerState:{},
     sessionComplete:false,practiceTopicsLoaded:false,practiceTopicsLoading:false,
     feedbackByQuestionId:{},results:[],resultsSubmitted:false,correctCount:0,incorrectCount:0};
+  clearPracticeNextSetPrefetch();
+  practiceFinalizationPromise=null;
+}
+function practicePrefetchKey(topics, count) {
+  const normalizedTopics=(Array.isArray(topics)?topics:[]).map(v=>String(v||'').trim()).filter(Boolean).sort();
+  return normalizedTopics.join('|')+'::'+Number(count||0);
+}
+function clearPracticeNextSetPrefetch() {
+  practiceNextSetPrefetch=null;
+}
+function beginPracticeNextSetPrefetch(topics, count, sourceSessionId) {
+  const normalizedTopics=(Array.isArray(topics)?topics:[]).map(v=>String(v||'').trim()).filter(Boolean);
+  const numericCount=Number(count||0);
+  const source=String(sourceSessionId||'');
+  if(!currentUserEmail||!sessionToken||!navigator.onLine||!normalizedTopics.length||numericCount<1)return null;
+  const key=practicePrefetchKey(normalizedTopics,numericCount);
+  if(practiceNextSetPrefetch &&
+      practiceNextSetPrefetch.key===key &&
+      practiceNextSetPrefetch.sourceSessionId===source) {
+    return practiceNextSetPrefetch.promise;
+  }
+  const record={key,sourceSessionId:source,questions:null,error:null,promise:null};
+  record.promise=postToAppsScript(PRACTICE_API_URL,{
+    action:'getPracticeQuestions',
+    email:currentUserEmail,
+    course:String(practiceTestState.selectedCourse||'').trim(),
+    topics:normalizedTopics,
+    question_count:numericCount
+  },{retries:1,retryDelayMs:500,timeoutMs:20000})
+    .then(data=>{
+      if(!data?.ok||!Array.isArray(data.question_set)||!data.question_set.length) {
+        throw new Error(data?.error||'Unable to prepare the next practice set.');
+      }
+      if(practiceNextSetPrefetch===record) record.questions=data.question_set;
+      return data.question_set;
+    })
+    .catch(error=>{
+      if(practiceNextSetPrefetch===record) record.error=error;
+      return null;
+    });
+  practiceNextSetPrefetch=record;
+  return record.promise;
+}
+async function consumePrefetchedPracticeSet(topics, count, sourceSessionId) {
+  const record=practiceNextSetPrefetch;
+  if(!record) return null;
+  if(record.key!==practicePrefetchKey(topics,count) || record.sourceSessionId!==String(sourceSessionId||'')) return null;
+  if(!record.questions && record.promise) {
+    try { await record.promise; } catch (_) {}
+  }
+  if(practiceNextSetPrefetch!==record || !Array.isArray(record.questions) || !record.questions.length) return null;
+  const questions=record.questions;
+  practiceNextSetPrefetch=null;
+  return questions;
 }
 function showModuleSubmitted() {
   hasSuccessfulSubmission=true;trainingActive=false;
@@ -7095,19 +7172,44 @@ function isRecoverablePracticeSession(snapshot) {
 }
 async function submitPracticeResultsAndUpdateDashboard() {
   if(!practiceTestState.results?.length)return {ok:true,skipped:true};
-  savePracticeSessionToLocal();queuePracticeSave();await flushSavedWork();
-  const pending=readOutbox()['practice:'+practiceTestState.sessionId];
+  savePracticeSessionToLocal();queuePracticeSave();
+  const key='practice:'+practiceTestState.sessionId;
+  for(let attempt=0;attempt<2;attempt++){
+    await flushSavedWork();
+    if(!readOutbox()[key])break;
+  }
+  const pending=readOutbox()[key];
   return {ok:!pending,pending:!!pending};
 }
 async function submitFinalPracticeResults() {
   practiceTestState.sessionComplete=true;
+  const completedSessionId=String(practiceTestState.sessionId||'');
+  const nextTopics=Array.isArray(practiceTestState.selectedTopics)?[...practiceTestState.selectedTopics]:[];
+  const nextCount=Number(practiceTestState.requestedQuestionCount||practiceTestState.questionCount||10);
   savePracticeSessionToLocal();
   renderPracticeResultsSummary();
   const container=document.getElementById('practice-question-container');
   const status=document.createElement('p');status.id='practice-save-status';status.setAttribute('role','status');status.textContent='Saving results…';container?.appendChild(status);
-  const result=await submitPracticeResultsAndUpdateDashboard();
-  status.textContent=result.ok?'Results saved.':'Results saved on this device; waiting to sync.';
-  if(result.ok)clearPracticeSessionFromLocal();
+
+  practiceFinalizationPromise=(async()=>{
+    const result=await submitPracticeResultsAndUpdateDashboard();
+    if(status?.isConnected) status.textContent=result.ok?'Results saved. Preparing the next set…':'Results saved on this device; waiting to sync.';
+    if(result.ok){
+      clearPracticeSessionFromLocal();
+      const prefetch=beginPracticeNextSetPrefetch(nextTopics,nextCount,completedSessionId);
+      if(prefetch){
+        prefetch.then(questions=>{
+          if(status?.isConnected && questions?.length) status.textContent='Results saved. Next set ready.';
+          else if(status?.isConnected) status.textContent='Results saved.';
+        });
+      }else if(status?.isConnected){
+        status.textContent='Results saved.';
+      }
+    }
+    return result;
+  })();
+
+  return await practiceFinalizationPromise;
 }
 async function returnToDashboard() {
   if(practiceTestState.returningToDashboard)return;
